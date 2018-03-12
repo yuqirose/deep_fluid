@@ -40,21 +40,21 @@ densities = []
 
 # start reading simSimple 1000 ff.
 for sim in range(1000,2000): 
-	if os.path.exists( "%s/simSimple_%04d" % (basePath, sim) ):
-		for i in range(0,100): 
-			filename = "%s/simSimple_%04d/density_%04d.uni" 
-			uniPath = filename % (basePath, sim, i)  # 100 files per sim
-			header, content = uniio.readUni(uniPath)
-			h = header['dimX']
-			w  = header['dimY']
-			arr = np.reshape(content, [w, h])
-			arr = arr[::-1] # reverse order
-			arr = np.reshape(arr, [w, h, 1])
-			densities.append( arr )
+    if os.path.exists( "%s/simSimple_%04d" % (basePath, sim) ):
+        for i in range(0,100): 
+            filename = "%s/simSimple_%04d/density_%04d.uni" 
+            uniPath = filename % (basePath, sim, i)  # 100 files per sim
+            header, content = uniio.readUni(uniPath)
+            h = header['dimX']
+            w  = header['dimY']
+            arr = np.reshape(content, [w, h])
+            arr = arr[::-1] # reverse order
+            arr = np.reshape(arr, [w, h, 1])
+            densities.append( arr )
 
 loadNum = len(densities)
 if loadNum<200:
-	print("Error - use at least two full sims, generate data by running 'manta ./manta_genSimSimple.py' a few times..."); exit(1)
+    print("Error - use at least two full sims, generate data by running 'manta ./manta_genSimSimple.py' a few times..."); exit(1)
 
 densities = np.reshape( densities, (len(densities), 64,64,1) )
 
@@ -98,26 +98,26 @@ sess = tf.InteractiveSession()
 sess.run(tf.global_variables_initializer())
 
 for epoch in range(trainingEpochs):
-	c = (epoch * batchSize) % densities.shape[0]
-	batch = []
-	for currNo in range(0, batchSize):
-		r = random.randint(0, loadNum-1) 
-		batch.append( densities[r] )
+    c = (epoch * batchSize) % densities.shape[0]
+    batch = []
+    for currNo in range(0, batchSize):
+        r = random.randint(0, loadNum-1) 
+        batch.append( densities[r] )
 
-	_ , currentCost = sess.run([opt, cost], feed_dict={x: batch, y: batch})
-	#print("Epoch %d/%d: cost %f " % (epoch, trainingEpochs, currentCost) ) # debug, always output cost
-	
-	if epoch%10==9 or epoch==trainingEpochs-1:
-		[valiCost,vout] = sess.run([cost, y_pred], feed_dict={x: valiData, y: valiData})
-		print("Epoch %d/%d: cost %f , validation cost %f " % (epoch, trainingEpochs, currentCost, valiCost) )
+    _ , currentCost = sess.run([opt, cost], feed_dict={x: batch, y: batch})
+    #print("Epoch %d/%d: cost %f " % (epoch, trainingEpochs, currentCost) ) # debug, always output cost
+    
+    if epoch%10==9 or epoch==trainingEpochs-1:
+        [valiCost,vout] = sess.run([cost, y_pred], feed_dict={x: valiData, y: valiData})
+        print("Epoch %d/%d: cost %f , validation cost %f " % (epoch, trainingEpochs, currentCost, valiCost) )
 
-		if epoch==trainingEpochs-1:
-			outDir = "%s/test_simple" % basePath
-			if not os.path.exists(outDir): os.makedirs(outDir)
-			print("\n Training done. Writing %d images from validation data to directory %s..." % (len(valiData),outDir) )
-			for i in range(len(valiData)):
-				scipy.misc.toimage( np.reshape(valiData[i], [64, 64]) , cmin=0.0, cmax=1.0).save("%s/in_%d.png" % (outDir,i))
-				scipy.misc.toimage( np.reshape(vout[i]    , [64, 64]) , cmin=0.0, cmax=1.0).save("%s/out_%d.png" % (outDir,i))
+        if epoch==trainingEpochs-1:
+            outDir = "%s/test_simple" % basePath
+            if not os.path.exists(outDir): os.makedirs(outDir)
+            print("\n Training done. Writing %d images from validation data to directory %s..." % (len(valiData),outDir) )
+            for i in range(len(valiData)):
+                scipy.misc.toimage( np.reshape(valiData[i], [64, 64]) , cmin=0.0, cmax=1.0).save("%s/in_%d.png" % (outDir,i))
+                scipy.misc.toimage( np.reshape(vout[i]    , [64, 64]) , cmin=0.0, cmax=1.0).save("%s/out_%d.png" % (outDir,i))
 
 
 
