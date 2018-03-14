@@ -13,6 +13,8 @@ import torch.optim as optim
 from train import train, test
 from reader import SmokeDataset
 from seq2seq import Seq2Seq
+import os
+
 
 
 # Training settings
@@ -31,7 +33,7 @@ parser.add_argument('--val-size', type=int, default=64, metavar='N')
 parser.add_argument('--test-size', type=int, default=64, metavar='N')
 
 parser.add_argument('--input-len', type=int, default= 1, metavar='N')
-parser.add_argument('--output-len', type=int, default=2, metavar='N')
+parser.add_argument('--output-len', type=int, default=3, metavar='N')
 parser.add_argument('--x-dim', type=int, default=64
     , metavar='N')
 parser.add_argument('--y-dim', type=int, default=64
@@ -73,17 +75,6 @@ args.cuda = not args.no_cuda and torch.cuda.is_available()
 if __name__ == "__main__":
     if args.cuda and torch.cuda.is_available(): print("Using CUDA")
 
-    #init model + optimizer + datasets
-    # train_loader = torch.utils.data.DataLoader(
-    #     datasets.MNIST('data', train=True, download=True,
-    #         transform=transforms.ToTensor()),
-    #     batch_size=args.batch_size, shuffle=True)
-
-    # test_loader = torch.utils.data.DataLoader(
-    #     datasets.MNIST('data', train=False, 
-    #         transform=transforms.ToTensor()),
-    #     batch_size=args.batch_size, shuffle=True)
-
     train_loader = torch.utils.data.DataLoader(SmokeDataset(args, args.data_dir, train=True),
         batch_size=args.batch_size, shuffle=True)
     test_loader = torch.utils.data.DataLoader(SmokeDataset(args, args.data_dir, train=False),
@@ -99,6 +90,9 @@ if __name__ == "__main__":
 
         #saving model
         if epoch % args.save_freq == 1:
-            fn = 'save/vrnn_state_dict_'+str(epoch)+'.pth'
-            torch.save(model.state_dict(), fn)
+            path= '../saves/'
+            fn = 'vrnn_state_dict_'+str(epoch)+'.pth'
+            if not os.path.exists(path):
+                os.makedirs(path)
+            torch.save(model.state_dict(), path+fn)
             print('Saved model to '+fn)

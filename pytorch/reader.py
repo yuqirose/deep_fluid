@@ -10,7 +10,7 @@ import uniio
 
 
 class SmokeDataset(Dataset):
-    def __init__(self, args, data_dir="../tensorflow/data/", num_sim=1, num_frame=3,
+    def __init__(self, args, data_dir="../tensorflow/data/", num_sim=1, num_frame=4,
         train=True, valid=False, train_valid_split=0.1, transform=None):
         """
         Args:
@@ -66,12 +66,13 @@ class SmokeDataset(Dataset):
             arr = np.reshape(arr, [1, w, h])
             states = np.append( states, arr, 0 )
 
-        print(states.shape)
         data = states[:self.args.input_len,]
         label = states[self.args.input_len:,]
 
+        # seq_len x channel x height x width
         data = torch.from_numpy(data).type(torch.FloatTensor)
         label = torch.from_numpy(label).type(torch.FloatTensor)
+
 
         return data, label
 

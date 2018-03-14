@@ -29,14 +29,14 @@ def train(train_loader, epoch, model, args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     for batch_idx, (data, target) in enumerate(train_loader):
-        print('data shape', data.shape)
-        print('target shape', target.shape)
-
+        # print('data shape', data.shape)
+        # print('target shape', target.shape)
         data, target = Variable(data), Variable(target)
-        # original: batch x num_step x dim
+        # original: batch x seq_len x dim
         data = torch.transpose(data, 0, 1)
         target = torch.transpose(target, 0, 1)
-
+        # transposed: seq_len x batch x dim
+       
         #forward + backward + optimize
         optimizer.zero_grad()
         output = model(data)
@@ -45,7 +45,7 @@ def train(train_loader, epoch, model, args):
         loss.backward()
         optimizer.step()
 
-        print(output[0,0,:], target[0,0,:])
+        # print(output[0,0,:], target[0,0,:])
         #grad norm clipping, only in pytorch version >= 1.10
         nn.utils.clip_grad_norm(model.parameters(), clip)
 
