@@ -52,7 +52,7 @@ class SmokeDataset(Dataset):
         Returns:
             TYPE: Description
         """
-        states = np.empty([self.args.x_dim,self.args.y_dim,0])
+        states = np.empty([0, self.args.x_dim,self.args.y_dim])
 
         sim = sim + 1000 #start from 1000
         for t in range(self.T):
@@ -63,8 +63,8 @@ class SmokeDataset(Dataset):
             w  = header['dimY']
             arr = np.reshape(content, [w, h])
             arr = arr[::-1] # reverse order
-            arr = np.reshape(arr, [w, h, 1])
-            states = np.append( states, arr, 2 )
+            arr = np.reshape(arr, [1, w, h])
+            states = np.append( states, arr, 0 )
 
         print(states.shape)
         data = states[:self.args.input_len,]

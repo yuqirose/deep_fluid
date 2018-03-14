@@ -29,7 +29,11 @@ def train(train_loader, epoch, model, args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     for batch_idx, (data, target) in enumerate(train_loader):
+        print('data shape', data.shape)
+        print('target shape', target.shape)
+
         data, target = Variable(data), Variable(target)
+        # original: batch x num_step x dim
         data = torch.transpose(data, 0, 1)
         target = torch.transpose(target, 0, 1)
 
