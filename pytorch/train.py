@@ -95,6 +95,12 @@ def test(test_loader, epoch, model, valid=True):
         print('====> Test set loss: Loss = {:.4f} '.format(loss.data[0]))
 
 
-    if PLOT_ON == True:
+    if PLOT_ON == True and valid ==False:
         #visualize prediction
-        print(output.shape, type(output))
+        # print(output.shape, type(output))
+        # out_data = output.permute(2,3,1,0).data.cpu().numpy()
+        # print(type(out_data))
+        # viz.video(torch.from_numpy(out_data))
+        video = output.permute(0,2,3,1).data.cpu().numpy() 
+        print(video[0,:,:,0])
+        viz.video(tensor=video) #LxHxWxC

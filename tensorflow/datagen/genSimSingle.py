@@ -14,7 +14,7 @@ import paramhelpers as ph
 # Main params  ----------------------------------------------------------------------#
 steps    = 120
 simNo    = 1000  # start ID
-showGui  = 1
+showGui  = 0
 basePath = '../data/'
 npSeedstr   = "-1"
 dim         = 2 
