@@ -19,7 +19,7 @@ while not viz.check_connection() and startup_sec > 0:
     startup_sec -= 0.1
 assert viz.check_connection(), 'No connection could be formed quickly'
 
-PLOT_ON = False
+PLOT_ON = True
 
 """adaptive resolution sequence prediction"""
 def train(train_loader, epoch, model, args):
@@ -63,15 +63,16 @@ def train(train_loader, epoch, model, args):
         epoch, train_loss / len(train_loader.dataset)))
 
     if PLOT_ON == True and epoch %5==0:
-        import matplotlib.pyplot as plt
-        fig = plt.figure()
-        ax = fig.gca(projection='3d')
-        plot_scatter3d(ax,  data[:,0,:].data, 'k')
-        plot_scatter3d(ax,  target[:,0,:].data, 'r')
-        plot_scatter3d(ax, output[:,0,:].data, 'b')
-        viz.matplot(plt)
+        pass
+        # import matplotlib.pyplot as plt
+        # fig = plt.figure()
+        # ax = fig.gca(projection='3d')
+        # plot_scatter3d(ax,  data[:,0,:].data, 'k')
+        # plot_scatter3d(ax,  target[:,0,:].data, 'r')
+        # plot_scatter3d(ax, output[:,0,:].data, 'b')
+        # viz.matplot(plt)
 
-def test(test_loader, epoch, model):
+def test(test_loader, epoch, model, valid=True):
     """uses test data to evaluate 
     likelihood of the model"""
     
@@ -88,4 +89,12 @@ def test(test_loader, epoch, model):
         loss = F.mse_loss(output, target)
         loss /= len(test_loader.dataset)
 
-    print('====> Test set loss: Loss = {:.4f} '.format(loss.data[0]))
+    if valid==True:
+        print('====> Valid set loss: Loss = {:.4f} '.format(loss.data[0]))
+    else:
+        print('====> Test set loss: Loss = {:.4f} '.format(loss.data[0]))
+
+
+    if PLOT_ON == True:
+        #visualize prediction
+        print(output.shape, type(output))

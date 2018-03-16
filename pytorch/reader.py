@@ -10,8 +10,7 @@ import uniio
 
 
 class SmokeDataset(Dataset):
-    def __init__(self, args, data_dir="../tensorflow/data/", num_sim=1, num_frame=4,
-        train=True, valid=False, train_valid_split=0.1, transform=None):
+    def __init__(self, args, data_dir="../tensorflow/train_data/", num_sim=2, num_frame=4,transform=None):
         """
         Args:
             args (TYPE): Description
@@ -19,7 +18,6 @@ class SmokeDataset(Dataset):
             num (int, optional): Description
             train (bool, optional): Description
             valid (bool, optional): Description
-            train_valid_split (float, optional): Description
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         
@@ -30,10 +28,6 @@ class SmokeDataset(Dataset):
         self.data_dir = data_dir
         self.N = num_sim
         self.T = num_frame
-        self.train = train
-        self.valid = valid
-        self.train_valid_split = train_valid_split
-
     
 
     def __len__(self):
