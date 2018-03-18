@@ -44,7 +44,7 @@ parser.add_argument('--h-dim', type=int, default=100, metavar='N')
 
 parser.add_argument('--batch-size', type=int, default=1, metavar='N')
 parser.add_argument('--n-layers', type=int, default=1, metavar='N')
-parser.add_argument('--n-epochs', type=int, default=1, metavar='N',
+parser.add_argument('--n-epochs', type=int, default=50, metavar='N',
                                         help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=1e-2, metavar='LR',
                                         help='learning rate (default: 0.01)')
@@ -98,12 +98,15 @@ if __name__ == "__main__":
         batch_size=args.batch_size)
 
     model = Seq2Seq(args)
+    if args.cuda:
+        model = model.cuda()
+        
 
     for epoch in range(1, args.n_epochs + 1):
         
         #training + validation
         train(train_loader, epoch, model, args)
-        test(valid_loader, epoch, model)
+        test(valid_loader, epoch, model,args)
 
         #saving model
         if epoch % args.save_freq == 1:
@@ -115,4 +118,4 @@ if __name__ == "__main__":
             print('Saved model to '+fn)
 
     # testing
-    test(test_loader, epoch, model, valid=False)
+    test(test_loader, epoch, model, args,valid=False)

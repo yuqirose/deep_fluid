@@ -31,6 +31,8 @@ def train(train_loader, epoch, model, args):
     for batch_idx, (data, target) in enumerate(train_loader):
         # print('data shape', data.shape)
         # print('target shape', target.shape)
+        if args.cuda:
+            data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
         # original: batch x seq_len x dim
         data = torch.transpose(data, 0, 1)
@@ -72,13 +74,14 @@ def train(train_loader, epoch, model, args):
         # plot_scatter3d(ax, output[:,0,:].data, 'b')
         # viz.matplot(plt)
 
-def test(test_loader, epoch, model, valid=True):
+def test(test_loader, epoch, model, args,valid=True):
     """uses test data to evaluate 
     likelihood of the model"""
     
     loss = 0.0
     for i, (data, target) in enumerate(test_loader):                                            
-        
+        if args.cuda:
+            data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
         data = torch.transpose(data, 0, 1)
         target = torch.transpose(target, 0, 1)

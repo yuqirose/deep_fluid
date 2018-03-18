@@ -211,7 +211,7 @@ class LorenzDataset(Dataset):
         J = np.matrix([[-s, s, 0], [-z+r, -1, -x], [y, x, -b]])
         I = np.eye((3))
         dt = np.ones(3)*self._dt
-        exps= I + dt@J
+        exps= I + dt.dot(J)
         print(exps)
         return exps
 
