@@ -26,8 +26,8 @@ parser.add_argument('--sess', default="", metavar='N')
 
 parser.add_argument('--train-dir', type=str, default="../tensorflow/train_data", metavar='N')
 parser.add_argument('--test-dir', type=str, default="../tensorflow/test_data", metavar='N')
+parser.add_argument('--save-dir', type=str, default="../tensorflow/saves", metavar='N')
 
-parser.add_argument('--log-dir', default="/tmp/logs/multires", help='')
 parser.add_argument('--model', type=str, default="vrnn", metavar='N')
 
 parser.add_argument('--dataset', type=str, default="train", metavar='N')
@@ -110,11 +110,10 @@ if __name__ == "__main__":
 
         #saving model
         if epoch % args.save_freq == 1:
-            path= '../saves/'
             fn = 'vrnn_state_dict_'+str(epoch)+'.pth'
-            if not os.path.exists(path):
-                os.makedirs(path)
-            torch.save(model.state_dict(), path+fn)
+            if not os.path.exists(args.save_dir):
+                os.makedirs(args.save_dir)
+            torch.save(model.state_dict(), args.save_dir+fn)
             print('Saved model to '+fn)
 
     # testing

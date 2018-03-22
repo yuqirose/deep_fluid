@@ -74,7 +74,7 @@ def train(train_loader, epoch, model, args):
         # plot_scatter3d(ax, output[:,0,:].data, 'b')
         # viz.matplot(plt)
 
-def test(test_loader, epoch, model, args,valid=True):
+def test(test_loader, epoch, model, args, valid=True):
     """uses test data to evaluate 
     likelihood of the model"""
     
@@ -89,6 +89,9 @@ def test(test_loader, epoch, model, args,valid=True):
         # inference
         output = model(data)
 
+        # save predictions
+        np.save(args.save_path+"/pred_")
+
         loss = F.mse_loss(output, target)
         loss /= len(test_loader.dataset)
 
@@ -100,10 +103,11 @@ def test(test_loader, epoch, model, args,valid=True):
 
     if PLOT_ON == True and valid ==False:
         #visualize prediction
-        # print(output.shape, type(output))
         # out_data = output.permute(2,3,1,0).data.cpu().numpy()
         # print(type(out_data))
         # viz.video(torch.from_numpy(out_data))
         video = output.permute(0,2,3,1).data.cpu().numpy() 
         print(video[0,:,:,0])
         viz.video(tensor=video) #LxHxWxC
+
+
