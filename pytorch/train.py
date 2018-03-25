@@ -60,8 +60,8 @@ def train(train_loader, epoch, model, args, epoch_fig):
                 loss.data[0] / args.batch_size ))
             # plot the loss curve per epoch
             viz.line(
-            X=torch.ones((1)).cpu() * batch_idx,
-            Y=torch.Tensor([loss.data[0]/args.batch_size]).unsqueeze(0).cpu(),
+            X=torch.ones((1,)).cpu() * batch_idx,
+            Y=torch.Tensor([loss.data[0]/args.batch_size]).cpu(),
             win=epoch_fig,
             update='append'
             )

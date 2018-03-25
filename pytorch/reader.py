@@ -50,7 +50,7 @@ class SmokeDataset(Dataset):
 
         sim = sim + 1000 #start from 1000
         for t in range(self.T):
-            filename = "%s/simSimple_%04d/density_%04d.uni" 
+            filename = "%s/sim_%04d/density_low_%04d.uni" 
             uniPath = filename % (self.data_dir, sim, t)  # 100 files per sim
             header, content = uniio.readUni(uniPath)
             h = header['dimX']
@@ -67,7 +67,7 @@ class SmokeDataset(Dataset):
         data = torch.from_numpy(data).type(torch.FloatTensor)
         label = torch.from_numpy(label).type(torch.FloatTensor)
 
-
+	#print("read sim_%04d"%(sim))
         return data, label
 
 
