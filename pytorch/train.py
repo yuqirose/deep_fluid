@@ -22,12 +22,12 @@ assert viz.check_connection(), 'No connection could be formed quickly'
 PLOT_ON = True
 
 """adaptive resolution sequence prediction"""
-def train(train_loader, epoch, model, args):
+def train(train_loader, epoch, model, args, epoch_fig):
 
     train_loss = 0
     clip = 10
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-
+ 
     for batch_idx, (data, target) in enumerate(train_loader):
         # print('data shape', data.shape)
         # print('target shape', target.shape)
@@ -50,6 +50,7 @@ def train(train_loader, epoch, model, args):
         # print(output[0,0,:], target[0,0,:])
         #grad norm clipping, only in pytorch version >= 1.10
         nn.utils.clip_grad_norm(model.parameters(), clip)
+        train_loss += loss.data[0]
 
         #printing
         if batch_idx % args.print_freq == 0:
@@ -57,12 +58,16 @@ def train(train_loader, epoch, model, args):
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader),
                 loss.data[0] / args.batch_size ))
+            # plot the loss curve per epoch
+            viz.line(
+            X=torch.ones((1)).cpu() * batch_idx,
+            Y=torch.Tensor([loss.data[0]/args.batch_size]).unsqueeze(0).cpu(),
+            win=epoch_fig,
+            update='append'
+            )
 
-        train_loss += loss.data[0]
-
-
-    print('====> Epoch: {} Average loss: {:.4f}'.format(
-        epoch, train_loss / len(train_loader.dataset)))
+    train_loss/= len(train_loader.dataset)
+    print('====> Epoch: {} Average loss: {:.4f}'.format(epoch, train_loss ))
 
     if PLOT_ON == True and epoch %5==0:
         pass
@@ -73,12 +78,13 @@ def train(train_loader, epoch, model, args):
         # plot_scatter3d(ax,  target[:,0,:].data, 'r')
         # plot_scatter3d(ax, output[:,0,:].data, 'b')
         # viz.matplot(plt)
+    return train_loss
 
 def test(test_loader, epoch, model, args, valid=True):
     """uses test data to evaluate 
     likelihood of the model"""
     
-    loss = 0.0
+    test_loss = 0.0
     for i, (data, target) in enumerate(test_loader):                                            
         if args.cuda:
             data, target = data.cuda(), target.cuda()
@@ -89,25 +95,29 @@ def test(test_loader, epoch, model, args, valid=True):
         # inference
         output = model(data)
 
-        # save predictions
-        np.save(args.save_path+"/pred_")
-
         loss = F.mse_loss(output, target)
-        loss /= len(test_loader.dataset)
+        test_loss += loss.data[0]
+        if valid==False:
+            # save test predictions
+            save_fname ="/pred_%04d"
+            save_fname = save_fname%(i)
+            print(args.save_dir+save_fname)
+            np.savez(args.save_dir+save_fname, output.data.cpu().numpy())
+
+    test_loss /= len(test_loader.dataset)
 
     if valid==True:
-        print('====> Valid set loss: Loss = {:.4f} '.format(loss.data[0]))
+        print('====> Valid set loss: Loss = {:.4f} '.format(test_loss))
     else:
-        print('====> Test set loss: Loss = {:.4f} '.format(loss.data[0]))
+        print('====> Test set loss: Loss = {:.4f} '.format(test_loss))
 
 
     if PLOT_ON == True and valid ==False:
+        pass
         #visualize prediction
-        # out_data = output.permute(2,3,1,0).data.cpu().numpy()
-        # print(type(out_data))
-        # viz.video(torch.from_numpy(out_data))
-        video = output.permute(0,2,3,1).data.cpu().numpy() 
-        print(video[0,:,:,0])
-        viz.video(tensor=video) #LxHxWxC
+        #video = output.permute(0,2,3,1).data.cpu().numpy() 
+        #viz.video(tensor=video) #LxHxWxC
+
+    return test_loss
 
 

@@ -17,7 +17,8 @@ from seq2seq import Seq2Seq
 import os
 import numpy as np
 
-
+import visdom
+viz = visdom.Visdom()
 
 # Training settings
 parser = argparse.ArgumentParser(description='adaptive vrnn')
@@ -26,7 +27,7 @@ parser.add_argument('--sess', default="", metavar='N')
 
 parser.add_argument('--train-dir', type=str, default="../tensorflow/train_data", metavar='N')
 parser.add_argument('--test-dir', type=str, default="../tensorflow/test_data", metavar='N')
-parser.add_argument('--save-dir', type=str, default="../tensorflow/saves", metavar='N')
+parser.add_argument('--save-dir', type=str, default="../saves", metavar='N')
 
 parser.add_argument('--model', type=str, default="vrnn", metavar='N')
 
@@ -101,13 +102,41 @@ if __name__ == "__main__":
     if args.cuda:
         model = model.cuda()
         
-
+    #plot
+    # initialize visdom loss plot
+    fig = viz.line(
+        X=torch.zeros((1,)).cpu(),
+        Y=torch.zeros((1, 2)).cpu(),
+        opts=dict(
+            xlabel='Epoch',
+            ylabel='Loss',
+            title='Training/Valid Loss - Epoch',
+            legend=['Train Loss', 'Valid Loss']
+        )
+    )
+    epoch_fig = viz.line(
+        X=torch.zeros((1,)).cpu(),
+        Y=torch.zeros((1,)).cpu(),
+        opts=dict(
+            xlabel='Iteration',
+            ylabel='Loss',
+            title='Current Epoch Training Loss',
+            legend=['Loss']
+        )
+    )
     for epoch in range(1, args.n_epochs + 1):
         
         #training + validation
-        train(train_loader, epoch, model, args)
-        test(valid_loader, epoch, model,args)
+        train_loss = train(train_loader, epoch, model, args, epoch_fig)
+        valid_loss = test(valid_loader, epoch, model,args)
 
+        #plot
+        viz.line(
+            X=torch.ones((1)).cpu() * epoch,
+            Y=torch.Tensor([train_loss,valid_loss]).unsqueeze(0).cpu() / args.n_epochs,
+            win=fig,
+            update='append'
+        )
         #saving model
         if epoch % args.save_freq == 1:
             fn = 'vrnn_state_dict_'+str(epoch)+'.pth'
@@ -117,4 +146,4 @@ if __name__ == "__main__":
             print('Saved model to '+fn)
 
     # testing
-    test(test_loader, epoch, model, args,valid=False)
+    test_loss = test(test_loader, epoch, model, args,valid=False)
