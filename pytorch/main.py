@@ -35,8 +35,8 @@ parser.add_argument('--dataset', type=str, default="train", metavar='N')
 
 parser.add_argument('--valid-size', type=float, default=0.5, metavar='N')
 
-parser.add_argument('--input-len', type=int, default= 1, metavar='N')
-parser.add_argument('--output-len', type=int, default=3, metavar='N')
+parser.add_argument('--input-len', type=int, default=2, metavar='N')
+parser.add_argument('--output-len', type=int, default=1, metavar='N')
 parser.add_argument('--x-dim', type=int, default=64
     , metavar='N')
 parser.add_argument('--y-dim', type=int, default=64

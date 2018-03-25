@@ -10,7 +10,7 @@ import uniio
 
 
 class SmokeDataset(Dataset):
-    def __init__(self, args, data_dir="../tensorflow/train_data/", num_sim=2, num_frame=4,transform=None):
+    def __init__(self, args, data_dir="../tensorflow/train_data/", num_sim=10, transform=None):
         """
         Args:
             args (TYPE): Description
@@ -27,7 +27,7 @@ class SmokeDataset(Dataset):
         self.args = args
         self.data_dir = data_dir
         self.N = num_sim
-        self.T = num_frame
+        self.T = args.input_len + args.output_len
     
 
     def __len__(self):
