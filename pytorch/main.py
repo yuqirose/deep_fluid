@@ -142,7 +142,7 @@ if __name__ == "__main__":
             fn = 'vrnn_state_dict_'+str(epoch)+'.pth'
             if not os.path.exists(args.save_dir):
                 os.makedirs(args.save_dir)
-            torch.save(model.state_dict(), args.save_dir+fn)
+            torch.save(model.state_dict(), args.save_dir+"/"+fn)
             print('Saved model to '+fn)
 
     # testing

@@ -1,7 +1,7 @@
 import os, math, sys
 import scipy.misc, numpy as np
 
-test = 1
+test = 2
 print("Test case %d!" % test)
 
 def get_img(src, img_size=False):
@@ -32,7 +32,7 @@ def save_img_3d(out_path, img): # img: e.g.,(56,64,48), a 3D float/double array
     
 if( test == 1 ): # uni simple rendering
     from manta import *
-    folder = r"/home/roseyu/Documents/manta/tensorflow/data/sim_1003/" # uni file path
+    folder = r"/home/roseyu/Documents/manta/saves/" # uni file path
     sz = vec3( 64, 64, 64) # simulation resolution
     sz.z  = 1 # 2D
     Sl = Solver(name='sl', gridSize = sz, dim=2) 
@@ -52,9 +52,10 @@ if( test == 1 ): # uni simple rendering
             
 elif( test == 2 ): # NPZ simple rendering
     from manta import *
-    folder = r"Z:\tensorflow\fastStyle\data\data_iphone3\scene_8210"# npz file path
+    folder = r"/home/roseyu/Documents/manta/saves/seq2seq/"# npz file path
     sz = vec3( 64, 64, 64) # simulation resolution
-    Sl = Solver(name='sl', gridSize = sz, dim=3) 
+    sz.z  = 1 #2D
+    Sl = Solver(name='sl', gridSize = sz, dim=2) 
     Gd = Sl.create(RealGrid)
     for root, dirs, files in os.walk(folder): 
         for f in sorted(files):
