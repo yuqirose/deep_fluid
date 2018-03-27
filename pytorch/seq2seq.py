@@ -22,7 +22,6 @@ class EncoderRNN(nn.Module):
             nn.MaxPool2d(2))
 
         self.fc = nn.Linear(16*32*32, hidden_size)
-
         self.gru = nn.GRU(hidden_size, hidden_size, n_layers)
 
     def forward(self, input, hidden):
