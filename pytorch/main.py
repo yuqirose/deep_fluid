@@ -39,7 +39,7 @@ parser.add_argument('--valid-size', type=float, default=0.5, metavar='N')
 
 parser.add_argument('--input-len', type=int, default=2, metavar='N')
 parser.add_argument('--output-len', type=int, default=1, metavar='N')
-parser.add_argument('--sim-len', type=int, default=3, metavar='N')
+parser.add_argument('--sim-len', type=int, default=100, metavar='N')
 
 parser.add_argument('--x-dim', type=int, default=64
     , metavar='N')
@@ -47,7 +47,7 @@ parser.add_argument('--y-dim', type=int, default=64
     , metavar='N')
 parser.add_argument('--h-dim', type=int, default=256, metavar='N')
 
-parser.add_argument('--batch-size', type=int, default=1, metavar='N')
+parser.add_argument('--batch-size', type=int, default=5, metavar='N')
 parser.add_argument('--n-layers', type=int, default=2, metavar='N')
 parser.add_argument('--n-epochs', type=int, default=50, metavar='N',
                                         help='number of epochs to train (default: 10)')
@@ -82,8 +82,8 @@ args.cuda = not args.no_cuda and torch.cuda.is_available()
 if __name__ == "__main__":
     if args.cuda and torch.cuda.is_available(): print("Using CUDA")
 
-    train_dataset = Smoke2dDataset(args, args.train_dir, num_sim=2)
-    test_dataset  = Smoke2dDataset(args, args.test_dir, num_sim=1)
+    train_dataset = Smoke2dDataset(args, args.train_dir, num_sim=90)
+    test_dataset  = Smoke2dDataset(args, args.test_dir, num_sim=10)
 
     num_train = len(train_dataset)
     indices = list(range(num_train))
