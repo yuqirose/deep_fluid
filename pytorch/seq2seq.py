@@ -134,7 +134,7 @@ class AttnDecoderRNN(nn.Module):
 
 
 class Seq2Seq(nn.Module):
-    def __init__(self, args, test=False):
+    def __init__(self, args):
         super(Seq2Seq, self).__init__()
         self.args = args
 

@@ -53,7 +53,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
         train_loss += loss.data[0]
 
         #printing
-        if batch_idx % args.print_freq == 0:
+        if batch_idx % args.print_freq == 1:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\t Loss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader),
@@ -99,10 +99,14 @@ def test(test_loader, epoch, model, args, valid=True):
         test_loss += loss.data[0]
         if valid==False:
             # save test predictions
-            save_fname ="/pred_%04d"
-            save_fname = save_fname%(i)
-            print(args.save_dir+save_fname)
+            sim_idx = i / args.sim_len
+            sim_idx += 1000 #start from 1000
+            step_idx = i  % args.sim_len
+            save_fname ="/pred_s%04d_t%04d"
+            save_fname = save_fname%(sim_idx, step_idx)
             np.savez(args.save_dir+save_fname, output.data.cpu().numpy())
+            print('Saved prediction to '+args.save_dir+save_fname)
+
 
     test_loss /= len(test_loader.dataset)
 
