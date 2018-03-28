@@ -102,10 +102,28 @@ def test(test_loader, epoch, model, args, valid=True):
             sim_idx = i / args.sim_len
             sim_idx += 1000 #start from 1000
             step_idx = i  % args.sim_len
+            save_fname ="/true_s%04d_t%04d"
+            save_fname = save_fname%(sim_idx, step_idx)
+            np.savez(args.save_dir+save_fname, data.data.cpu().numpy())
+
             save_fname ="/pred_s%04d_t%04d"
             save_fname = save_fname%(sim_idx, step_idx)
             np.savez(args.save_dir+save_fname, output.data.cpu().numpy())
             print('Saved prediction to '+args.save_dir+save_fname)
+
+            if PLOT_ON == True and valid ==False:
+                # pass
+                viz.images(data.data.cpu(),
+                    opts=dict(
+                    caption='ground truth', 
+                    jpgquality=20       
+                    ))
+                viz.images(output.data.cpu(),
+                    opts=dict(
+                    caption='prediction', 
+                    jpgquality=20       
+                    ))
+
 
 
     test_loss /= len(test_loader.dataset)
@@ -116,9 +134,7 @@ def test(test_loader, epoch, model, args, valid=True):
         print('====> Test set loss: Loss = {:.4f} '.format(test_loss))
 
 
-    if PLOT_ON == True and valid ==False:
-        pass
-        #visualize prediction
+
         #video = output.permute(0,2,3,1).data.cpu().numpy() 
         #viz.video(tensor=video) #LxHxWxC
 
