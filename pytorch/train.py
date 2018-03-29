@@ -123,6 +123,9 @@ def test(test_loader, epoch, model, args, valid=True):
                     caption='prediction', 
                     jpgquality=20       
                     ))
+                
+                # video = output.permute(0,2,3,1).data.cpu().numpy() 
+                # viz.video(tensor=video) #LxHxWxC
 
 
 
@@ -132,11 +135,6 @@ def test(test_loader, epoch, model, args, valid=True):
         print('====> Valid set loss: Loss = {:.4f} '.format(test_loss))
     else:
         print('====> Test set loss: Loss = {:.4f} '.format(test_loss))
-
-
-
-        #video = output.permute(0,2,3,1).data.cpu().numpy() 
-        #viz.video(tensor=video) #LxHxWxC
 
     return test_loss
 

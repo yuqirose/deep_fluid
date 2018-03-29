@@ -83,13 +83,14 @@ timings = Timings()
 flags    = solver.create(FlagGrid)
 vel      = solver.create(MACGrid)
 density  = solver.create(RealGrid)
-tmp      = solver.create(RealGrid)
+pressure = solver.create(RealGrid)
 vorticityTmp = solver.create(Vec3Grid) # vorticity, optional
 norm     = solver.create(RealGrid)
 
 if savenpz:
 	sm_arR = np.zeros([int(gridSize.z), int(gridSize.y), int(gridSize.x), 1])
 	sm_arV = np.zeros([int(gridSize.z), int(gridSize.y), int(gridSize.x), 3])
+	sm_arP = np.zeros([int(gridSize.z), int(gridSize.y), int(gridSize.x), 1])
 
 # open boundaries
 bWidth=1
@@ -209,7 +210,7 @@ while solver.frame < steps+timeOffset:
 	if 1 and ( curt < timeOffset ): 
 		vorticityConfinement( vel=vel, flags=flags, strength=0.05 )
 
-	solvePressure(flags=flags, vel=vel, pressure=tmp ,  cgMaxIterFac=2.0, cgAccuracy=0.001, preconditioner=PcMGStatic )
+	solvePressure(flags=flags, vel=vel, pressure=pressure,  cgMaxIterFac=2.0, cgAccuracy=0.001, preconditioner=PcMGStatic )
 	setWallBcs(flags=flags, vel=vel)
 	advectSemiLagrange(flags=flags, vel=vel, grid=density, order=2, clampMode=2, openBounds=True, boundaryWidth=bWidth)
 
@@ -230,12 +231,21 @@ while solver.frame < steps+timeOffset:
 			np.savez_compressed( simPath + 'density_low_%04d.npz' % (tf), sm_arR )
 			copyGridToArrayVec3( target=sm_arV, source=vel )
 			np.savez_compressed( simPath + 'velocity_low_%04d.npz' % (tf), sm_arV )
+
+			#save pressure field
+			copyGridToArrayReal( target=sm_arP, source=pressure)
+			np.savez_compressed( simPath + 'pressure_low_%04d.npz' % (tf), sm_arP )
+
+
 		if saveuni:
 			print("Writing UNIs for frame %d"%tf)
 			density.save(simPath + 'density_low_%04d.uni' % (tf))
-			vel.save(    simPath + 'velocity_low_%04d.uni' % (tf))
+			vel.save(simPath + 'velocity_low_%04d.uni' % (tf))
 			#computeVorticity(vel = vel,vorticity = vorticityTmp,norm = norm) #vorticity
 			#vorticityTmp.save(simPath + 'vorticity_low_%04d.uni' % (tf))
+
+			pressure.save(simPath + 'pressure_low_%04d.uni' % (tf))
+			
 		if(saveppm):
 			print("Writing ppms for frame %d"%tf)
 			projectPpmFull( density, simPath + 'density_low_%04d.ppm' % (tf), 0, 2.0 )

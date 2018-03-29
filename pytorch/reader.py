@@ -9,6 +9,26 @@ sys.path.append("../tensorflow/tools")
 import uniio
 
 
+def read_uni_file(data_dir, sim_idx, step_idx):
+    filename = "%s/sim_%04d/density_low_%04d.uni" 
+    uniPath = filename % (data_dir, sim_idx, step_idx)  # 100 files per sim
+    header, content = uniio.readUni(uniPath)
+    h = header['dimX']
+    w  = header['dimY']
+    arr = np.reshape(content, [w, h])
+    arr = arr[::-1] # reverse order
+    arr = np.reshape(arr, [1, w, h])
+    return arr
+
+def read_npz_file(data_dir, sim_idx, step_idx):
+    filename = "%s/sim_%04d/density_low_%04d.npz" 
+    npz_path = filename % (data_dir, sim_idx, step_idx)
+    data = np.load(npz_path)
+    arr = data['arr_0']
+    c,w,h,d = arr.shape
+    arr = np.reshape(arr, [d,w,h])
+    return arr
+
 class Smoke2dDataset(Dataset):
     def __init__(self, args, data_dir="../tensorflow/train_data/", num_sim=10, transform=None):
         """
@@ -49,15 +69,8 @@ class Smoke2dDataset(Dataset):
         sim_idx += 1000 #start from 1000
         step_idx = idx  % self.args.sim_len
 
-        filename = "%s/sim_%04d/density_low_%04d.uni" 
-        uniPath = filename % (self.data_dir, sim_idx, step_idx)  # 100 files per sim
-        header, content = uniio.readUni(uniPath)
-        h = header['dimX']
-        w  = header['dimY']
-        arr = np.reshape(content, [w, h])
-        arr = arr[::-1] # reverse order
-        arr = np.reshape(arr, [1, w, h])
-
+        # arr = read_uni_file(self.data_dir, sim_idx, step_idx)
+        arr = read_npz_file(self.data_dir, sim_idx, step_idx)
         data = label = arr
 
         # channel x height x width
@@ -107,14 +120,7 @@ class SmokeDataset(Dataset):
         step_idx = idx * self.T % self.args.sim_len
 
         for t in range(self.T):
-            filename = "%s/sim_%04d/density_low_%04d.uni" 
-            uniPath = filename % (self.data_dir, sim_idx, step_idx+t)  # 100 files per sim
-            header, content = uniio.readUni(uniPath)
-            h = header['dimX']
-            w  = header['dimY']
-            arr = np.reshape(content, [w, h])
-            arr = arr[::-1] # reverse order
-            arr = np.reshape(arr, [1, w, h])
+            arr = read_npz_file(self.data_dir, sim_idx, step_idx)
             states = np.append( states, arr, 0 )
 
         data = states[:self.args.input_len,]
