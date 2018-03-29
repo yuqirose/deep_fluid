@@ -39,6 +39,8 @@ parser.add_argument('--valid-size', type=float, default=0.5, metavar='N')
 
 parser.add_argument('--input-len', type=int, default=2, metavar='N')
 parser.add_argument('--output-len', type=int, default=1, metavar='N')
+parser.add_argument('--train-sim-num', type=int, default=100, metavar='N')
+parser.add_argument('--test-sim-num', type=int, default=100, metavar='N')
 parser.add_argument('--sim-len', type=int, default=100, metavar='N')
 
 parser.add_argument('--x-dim', type=int, default=64
@@ -82,8 +84,8 @@ args.cuda = not args.no_cuda and torch.cuda.is_available()
 if __name__ == "__main__":
     if args.cuda and torch.cuda.is_available(): print("Using CUDA")
 
-    train_dataset = Smoke2dDataset(args, args.train_dir, num_sim=90)
-    test_dataset  = Smoke2dDataset(args, args.test_dir, num_sim=10)
+    train_dataset = Smoke2dDataset(args, args.train_dir, num_sim=args.train_sim_num)
+    test_dataset  = Smoke2dDataset(args, args.test_dir, num_sim=args.test_sim_num)
 
     num_train = len(train_dataset)
     indices = list(range(num_train))
@@ -103,7 +105,7 @@ if __name__ == "__main__":
         batch_size=args.batch_size)
 
     #model = Seq2Seq(args)
-    model = AutoEncoder()
+    model = AutoEncoder(args)
 
     if args.cuda:
         model = model.cuda()

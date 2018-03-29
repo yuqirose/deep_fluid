@@ -7,7 +7,7 @@ from torch.nn import Parameter
 from torch.autograd import Variable
 
 class AutoEncoder(nn.Module):
-    def __init__(self):
+    def __init__(self, args):
         super(AutoEncoder, self).__init__()
         # self.encoder = nn.Sequential(
         #     nn.Conv2d(1, 16, 3, stride=3, padding=1),  # b, 16, 10, 10
@@ -28,9 +28,10 @@ class AutoEncoder(nn.Module):
         z_dim=256
         image_size=64
         conv_dim=4
+        self.args = args
 
         self.encoder =  nn.Sequential(
-            nn.Conv2d(1, conv_dim, 4, 2, 1),
+            nn.Conv2d(self.args.batch_size, conv_dim, 4, 2, 1),
             nn.BatchNorm2d(conv_dim),
             nn.Conv2d(conv_dim, conv_dim*2, 4, 2, 1),
             nn.BatchNorm2d(conv_dim*2),
@@ -47,7 +48,7 @@ class AutoEncoder(nn.Module):
             nn.BatchNorm2d(conv_dim*2),
             nn.ConvTranspose2d(conv_dim*2, conv_dim, 4,2,1),
             nn.BatchNorm2d(conv_dim),
-            nn.ConvTranspose2d(conv_dim, 1, 4,2,1)
+            nn.ConvTranspose2d(conv_dim, self.args.batch_size, 4,2,1)
         )
 
 
