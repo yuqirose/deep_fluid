@@ -12,7 +12,7 @@ sys.path.append("../tools")
 import paramhelpers as ph
 
 # Main params  ----------------------------------------------------------------------#
-steps    = 1000
+steps    = 100
 simNo    = 1000  # start ID
 showGui  = 0
 basePath = '../train_data/'
@@ -33,7 +33,7 @@ saveppm 		= int(ph.getParam( "saveppm" ,        False))>0
 showGui 		= int(ph.getParam( "gui"     ,        showGui))
 res     		= int(ph.getParam( "res"     ,        res))
 steps     		= int(ph.getParam( "steps"   ,        steps))
-setDt 	    	= float(ph.getParam( "dt"   ,         0.1))
+setDt 	    	= float(ph.getParam( "dt"   ,         1))
 frameLen        = float(ph.getParam( "frameLen"  ,    3.0))
 timeOffset   	= int(ph.getParam( "warmup"  ,        5))    # skip certain no of frames at beginning
 ph.checkUnusedParams()
