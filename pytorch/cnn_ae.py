@@ -24,14 +24,13 @@ class AutoEncoder(nn.Module):
         #     nn.ReLU(True),
         #     nn.ConvTranspose2d(8, 1, 2, stride=2, padding=1),  # b, 1, 28, 28
         #     nn.Tanh()
-        # )       
-        z_dim=256
-        image_size=64
+        # ) 
         conv_dim=4
         self.args = args
+	c_dim = self.args.c_dim
 
         self.encoder =  nn.Sequential(
-            nn.Conv2d(self.args.batch_size, conv_dim, 4, 2, 1),
+            nn.Conv2d(c_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
             nn.BatchNorm2d(conv_dim),
             nn.Conv2d(conv_dim, conv_dim*2, 4, 2, 1),
             nn.BatchNorm2d(conv_dim*2),
@@ -48,7 +47,7 @@ class AutoEncoder(nn.Module):
             nn.BatchNorm2d(conv_dim*2),
             nn.ConvTranspose2d(conv_dim*2, conv_dim, 4,2,1),
             nn.BatchNorm2d(conv_dim),
-            nn.ConvTranspose2d(conv_dim, self.args.batch_size, 4,2,1)
+            nn.ConvTranspose2d(conv_dim,c_dim, 4,2,1)
         )
 
 

@@ -29,18 +29,19 @@ def train(train_loader, epoch, model, args, epoch_fig):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
  
     for batch_idx, (data, target) in enumerate(train_loader):
-        # print('data shape', data.shape)
-        # print('target shape', target.shape)
+        #print('data shape', data.shape)
+        #print('target shape', target.shape)
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
         # original: batch x seq_len x dim
-        data = torch.transpose(data, 0, 1)
-        target = torch.transpose(target, 0, 1)
+        # data = torch.transpose(data, 0, 1)
+        # target = torch.transpose(target, 0, 1)
         # transposed: seq_len x batch x dim
        
         #forward + backward + optimize
         optimizer.zero_grad()
+        # batch x channel x height x width
         output = model(data)
 
         loss = F.mse_loss(output, target)
@@ -63,7 +64,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
             X=torch.ones((1,)).cpu() * batch_idx,
             Y=torch.Tensor([loss.data[0]/args.batch_size]).cpu(),
             win=epoch_fig,
-            update='append'
+            update='update'
             )
 
     train_loss/= len(train_loader.dataset)
@@ -89,8 +90,8 @@ def test(test_loader, epoch, model, args, valid=True):
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
-        data = torch.transpose(data, 0, 1)
-        target = torch.transpose(target, 0, 1)
+        # data = torch.transpose(data, 0, 1)
+        # target = torch.transpose(target, 0, 1)
 
         # inference
         output = model(data)

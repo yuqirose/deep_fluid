@@ -43,11 +43,10 @@ parser.add_argument('--train-sim-num', type=int, default=100, metavar='N')
 parser.add_argument('--test-sim-num', type=int, default=100, metavar='N')
 parser.add_argument('--sim-len', type=int, default=100, metavar='N')
 
-parser.add_argument('--x-dim', type=int, default=64
-    , metavar='N')
-parser.add_argument('--y-dim', type=int, default=64
-    , metavar='N')
+parser.add_argument('--x-dim', type=int, default=64, metavar='N')
+parser.add_argument('--y-dim', type=int, default=64, metavar='N')
 parser.add_argument('--h-dim', type=int, default=256, metavar='N')
+parser.add_argument('--c-dim', type=int, default=1, metavar='N')
 
 parser.add_argument('--batch-size', type=int, default=5, metavar='N')
 parser.add_argument('--n-layers', type=int, default=2, metavar='N')
@@ -102,7 +101,7 @@ if __name__ == "__main__":
     valid_loader = torch.utils.data.DataLoader(train_dataset,
         batch_size=args.batch_size, sampler=valid_sampler)
     test_loader = torch.utils.data.DataLoader(test_dataset,
-        batch_size=args.batch_size)
+        batch_size=1)
 
     #model = Seq2Seq(args)
     model = AutoEncoder(args)
