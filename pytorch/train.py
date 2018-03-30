@@ -25,6 +25,14 @@ PLOT_ON = True
 def train(train_loader, epoch, model, args, epoch_fig):
 
     train_loss = 0
+    # plot the loss curve per epoch
+    viz.line(
+    X=torch.ones((1,)).cpu(),
+    Y=torch.zeros((1,)).cpu(),
+    win=epoch_fig,
+    update='update')
+
+
     clip = 10
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
  
@@ -64,7 +72,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
             X=torch.ones((1,)).cpu() * batch_idx,
             Y=torch.Tensor([loss.data[0]/args.batch_size]).cpu(),
             win=epoch_fig,
-            update='update'
+            update='append'
             )
 
     train_loss/= len(train_loader.dataset)
@@ -103,25 +111,24 @@ def test(test_loader, epoch, model, args, valid=True):
             sim_idx = i / args.sim_len
             sim_idx += 1000 #start from 1000
             step_idx = i  % args.sim_len
-            save_fname ="/true_s%04d_t%04d"
-            save_fname = save_fname%(sim_idx, step_idx)
+            fname ="s%04d_t%04d"
+	    fname = fname%(sim_idx,step_idx)
+            save_fname = "/true_"+fname
             np.savez(args.save_dir+save_fname, data.data.cpu().numpy())
-
-            save_fname ="/pred_s%04d_t%04d"
-            save_fname = save_fname%(sim_idx, step_idx)
+            save_fname = "/pred_"+fname
             np.savez(args.save_dir+save_fname, output.data.cpu().numpy())
             print('Saved prediction to '+args.save_dir+save_fname)
 
-            if PLOT_ON == True and valid ==False:
+            if PLOT_ON == True and valid ==False and step_idx==args.sim_len-1:
                 # pass
                 viz.images(data.data.cpu(),
                     opts=dict(
-                    caption='ground truth', 
+                    caption='true'+fname, 
                     jpgquality=20       
                     ))
                 viz.images(output.data.cpu(),
                     opts=dict(
-                    caption='prediction', 
+                    caption='pred'+fname, 
                     jpgquality=20       
                     ))
                 

@@ -14,7 +14,7 @@ d=$(echo ${d} | tr '/' '-')
 
 start_time="$d-$t"
 
-n_epochs=5
+n_epochs=20
 batch_size=5
 train_sim_num=40
 test_sim_num=5

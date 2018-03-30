@@ -10,7 +10,7 @@ import uniio
 
 
 def read_uni_file(data_dir, sim_idx, step_idx):
-    filename = "%s/sim_%04d/density_low_%04d.uni" 
+    filename = "%s/sim_%04d/pressure_low_%04d.uni" 
     uniPath = filename % (data_dir, sim_idx, step_idx)  # 100 files per sim
     header, content = uniio.readUni(uniPath)
     h = header['dimX']
@@ -21,7 +21,7 @@ def read_uni_file(data_dir, sim_idx, step_idx):
     return arr
 
 def read_npz_file(data_dir, sim_idx, step_idx):
-    filename = "%s/sim_%04d/density_low_%04d.npz" 
+    filename = "%s/sim_%04d/pressure_low_%04d.npz" 
     npz_path = filename % (data_dir, sim_idx, step_idx)
     data = np.load(npz_path)
     arr = data['arr_0']
