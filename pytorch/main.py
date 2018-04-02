@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
+import torchvision.transforms as transforms
 from torch.nn import Parameter
 from torch.autograd import Variable
 from torch.utils.data import Dataset
@@ -52,11 +53,11 @@ parser.add_argument('--batch-size', type=int, default=5, metavar='N')
 parser.add_argument('--n-layers', type=int, default=2, metavar='N')
 parser.add_argument('--n-epochs', type=int, default=50, metavar='N',
                                         help='number of epochs to train (default: 10)')
-parser.add_argument('--lr', type=float, default=1e-2, metavar='LR',
+parser.add_argument('--lr', type=float, default=1e-4, metavar='LR',
                                         help='learning rate (default: 0.01)')
-parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
+parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
                                         help='SGD momentum (default: 0.5)')
-parser.add_argument('--l2', type=float, default=0.1, metavar='LR')
+parser.add_argument('--l2', type=float, default=0.005, metavar='LR')
 parser.add_argument('--opt', default="sgd")
 
 
@@ -83,8 +84,11 @@ args.cuda = not args.no_cuda and torch.cuda.is_available()
 if __name__ == "__main__":
     if args.cuda and torch.cuda.is_available(): print("Using CUDA")
 
-    train_dataset = Smoke2dDataset(args, args.train_dir, num_sim=args.train_sim_num)
-    test_dataset  = Smoke2dDataset(args, args.test_dir, num_sim=args.test_sim_num)
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+
+    train_dataset = Smoke2dDataset(args, args.train_dir, args.train_sim_num, normalize)
+    test_dataset  = Smoke2dDataset(args, args.test_dir, args.test_sim_num, normalize)
 
     num_train = len(train_dataset)
     indices = list(range(num_train))

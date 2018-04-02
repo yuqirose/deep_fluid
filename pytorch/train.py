@@ -34,7 +34,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
 
 
     clip = 10
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,weight_decay=args.l2)
  
     for batch_idx, (data, target) in enumerate(train_loader):
         #print('data shape', data.shape)
