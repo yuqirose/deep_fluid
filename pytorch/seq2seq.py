@@ -5,39 +5,45 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.nn import Parameter
 from torch.autograd import Variable
+import random
+
+EOS_token = 1
 
 class EncoderRNN(nn.Module):
     def __init__(self, hidden_size, n_layers=1, args=None):
         super(EncoderRNN, self).__init__()
         self.args = args
-
         self.n_layers = n_layers
         self.hidden_size = hidden_size
+        conv_dim = 4
 
-        # self.embedding = nn.Linear(input_size, hidden_size)
         self.cnn =  nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=5, padding=2),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.MaxPool2d(2))
+            nn.Conv2d(self.args.c_dim, conv_dim, 4, 2, 1),
+            nn.BatchNorm2d(4),
+            nn.Conv2d(conv_dim, conv_dim*2, 4, 2, 1),
+            nn.BatchNorm2d(conv_dim*2),
+            nn.Conv2d(conv_dim*2, conv_dim*4, 4, 2, 1),
+            nn.BatchNorm2d(conv_dim*4),
+        )
 
-        self.fc = nn.Linear(16*32*32, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size, n_layers)
+        input_size = 1024 #tbd:calculate
+        self.fc = nn.Linear(input_size, self.hidden_size)
+        self.gru = nn.GRU(hidden_size, self.hidden_size, self.n_layers)
 
-    def forward(self, input, hidden):
-        out = self.cnn(input.unsqueeze(1)) #channel_in=1
-        out = out.view(out.size(0), -1)
-        embedded = self.fc(out)
-        embedded = torch.unsqueeze(embedded, 0)
-        output, hidden = self.gru(embedded, hidden)
-        return output, hidden
+    def forward(self, x, h):
+        x = self.cnn(x) #channel_in=1
+        x = x.view(x.size(0), -1)        
+        x = self.fc(x)
+        x = torch.unsqueeze(x, 0) # T=1, TxBxD
+        x, h = self.gru(x, h)
+        return x, h
 
     def initHidden(self):
-        result = Variable(torch.zeros(self.n_layers, self.args.batch_size, self.hidden_size))
+        h = Variable(torch.zeros(self.n_layers, self.args.batch_size, self.hidden_size))
         if self.args.cuda:
-            return result.cuda()
+            return h.cuda()
         else:
-            return result
+            return h
 
 class DecoderRNN(nn.Module):
     def __init__(self, hidden_size, n_layers=1, args=None):
@@ -46,42 +52,57 @@ class DecoderRNN(nn.Module):
 
         self.n_layers = n_layers
         self.hidden_size = hidden_size
-        output_size = self.args.x_dim * self.args.y_dim
+        conv_dim = 4
+        c_dim = self.args.c_dim
 
-        # self.embedding = nn.Linear(output_size, hidden_size)
-        self.cnn =  nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=5, padding=2),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.MaxPool2d(2))
+        input_size = 1024
+        self.cnn_enc =  nn.Sequential(
+            nn.Conv2d(self.args.c_dim, conv_dim, 4, 2, 1),
+            nn.BatchNorm2d(4),
+            nn.Conv2d(conv_dim, conv_dim*2, 4, 2, 1),
+            nn.BatchNorm2d(conv_dim*2),
+            nn.Conv2d(conv_dim*2, conv_dim*4, 4, 2, 1),
+            nn.BatchNorm2d(conv_dim*4),
+        )
+        self.fc1 = nn.Linear(input_size, hidden_size)
 
-        self.fc1 = nn.Linear(16*32*32, hidden_size)
 
         self.gru = nn.GRU(hidden_size, hidden_size, n_layers)
-        self.fc2 = nn.Linear(hidden_size, output_size)
-        # self.softmax = nn.LogSoftmax()
+        self.fc2 = nn.Linear(hidden_size, input_size)
 
-    def forward(self, input, hidden):
-        out = self.cnn(input.unsqueeze(1)) #channel_in=1
-        out = out.view(out.size(0), -1)
-        embedded = self.fc1(out)
-        embedded = torch.unsqueeze(embedded, 0)
-        output, hidden = self.gru(embedded, hidden)
-        output = self.fc2(output.squeeze(0))
-        output = output.view(output.size(0), self.args.x_dim, self.args.y_dim)
-        return output, hidden
+        self.cnn_dec =  nn.Sequential(
+            nn.ConvTranspose2d(conv_dim*4, conv_dim*2, 4,2,1),
+            nn.BatchNorm2d(conv_dim*2),
+            nn.ConvTranspose2d(conv_dim*2, conv_dim, 4,2,1),
+            nn.BatchNorm2d(conv_dim),
+            nn.ConvTranspose2d(conv_dim,c_dim, 4,2,1)
+        )
+
+    def forward(self, x, h):
+        x = self.cnn_enc(x) 
+        x = x.view(x.size(0), -1)        
+        x = self.fc1(x)
+
+        x = torch.unsqueeze(x, 0) # T=1, TxBxD
+        x, h = self.gru(x, h) #TxBxD
+        x = torch.squeeze(x, 0)
+        x = self.fc2(x)
+
+        x = x.view(x.size(0), 16, 8, 8)
+        x = self.cnn_dec(x)
+        return x, h
 
     def initHidden(self):
-        result = Variable(torch.zeros(self.n_layers, self.args.batch_size, self.hidden_size))
+        h = Variable(torch.zeros(self.n_layers, self.args.batch_size, self.hidden_size))
         if self.args.cuda:
-            return result.cuda()
+            return h.cuda()
         else:
-            return result
+            return h
 
 
 
 class AttnDecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size, n_layers=1, args=None):
+    def __init__(self, hidden_size, n_layers=1, args=None):
         super(AttnDecoderRNN, self).__init__()
         self.args = args
 
@@ -136,47 +157,68 @@ class AttnDecoderRNN(nn.Module):
 class Seq2Seq(nn.Module):
     def __init__(self, args):
         super(Seq2Seq, self).__init__()
-        self.args = args
 
+        self.args = args
         T = torch.cuda if self.args.cuda else torch
 
-        self.enc = EncoderRNN(self.args.h_dim, args=args)
-
+        self.encoder = EncoderRNN(self.args.h_dim, args=args)
         self.use_attn = False
-
         if self.use_attn:
-            self.dec = AttnDecoderRNN(self.args.h_dim, args=args)
+            self.decoder = AttnDecoderRNN(self.args.h_dim, args=args)
         else:
-            self.dec = DecoderRNN(self.args.h_dim, args=args)
+            self.decoder = DecoderRNN(self.args.h_dim, args=args)
+
+        self.teacher_forcing_ratio = 0.5
+
 
     def parameters(self):
-        return list(self.enc.parameters()) + list(self.dec.parameters())
+        return list(self.encoder.parameters()) + list(self.decoder.parameters())
 
-    def forward(self, x):
-        encoder_hidden = self.enc.initHidden()
-
-        hs = []
+    def forward(self, x, y):
+        # update batch size
+        self.args.batch_size  = x.size(0)
+        # encoder forward pass
+        encoder_hidden = self.encoder.initHidden()
+        encoder_outputs = []
+        # B x T x C x H x W -> T x B x C x H x W
+        encoder_inputs = x.permute(1,0,2,3,4)
         for t in range(self.args.input_len):
-            encoder_output, encoder_hidden = self.enc(x[t], encoder_hidden)
-            hs += [encoder_output]
+            # TBD: different batch size
+            encoder_output, encoder_hidden = self.encoder(encoder_inputs[t], encoder_hidden)
+            encoder_outputs += [encoder_output]
+        encoder_outputs = torch.cat(encoder_outputs, 0)
 
-        decoder_hidden = hs[-1]
+        # decoder forward pass
 
-        hs = torch.cat(hs, 0)
+        decoder_input = Variable(torch.zeros(x.size(0), self.args.c_dim, self.args.x_dim, self.args.y_dim))
+        decoder_input = decoder_input.cuda() if self.args.cuda else decoder_input
 
-        inp = Variable(torch.zeros(self.args.batch_size, self.args.x_dim, self.args.y_dim))
-        if self.args.cuda: inp = inp.cuda()
-        ys = []
+        decoder_hidden = encoder_hidden
+        target_variable = y.permute(1,0,2,3,4)
 
-        if self.use_attn:
-            for t in range(self.args.output_len):
-                decoder_output, decoder_hidden = self.dec(inp, decoder_hidden, hs)
-                inp = decoder_output
-                ys += [decoder_output]
+        use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
+        decoder_outputs = []
+        if use_teacher_forcing:
+            # Teacher forcing: Feed the target as the next input
+            for di in range(self.args.output_len):
+                if self.use_attn:
+                    decoder_output, decoder_hidden, decoder_attention = self.decoder(
+                        decoder_input, decoder_hidden, encoder_outputs)
+                else: 
+                    decoder_output, decoder_hidden = self.decoder(
+                        decoder_input, decoder_hidden)
+                decoder_input = target_variable[di]  # Teacher forcing
+                decoder_outputs += [decoder_output]
         else:
-            for t in range(self.args.output_len):
-                decoder_output, decoder_hidden = self.dec(inp, decoder_hidden)
-                inp = decoder_output
-                ys += [decoder_output]
+            # Without teacher forcing: use its own predictions as the next input
+            for di in range(self.args.output_len):
+                if self.use_attn:
+                    decoder_output, decoder_hidden, decoder_attention = self.decoder(
+                        decoder_input, decoder_hidden, encoder_outputs)
+                else: 
+                    decoder_output, decoder_hidden = self.decoder(
+                        decoder_input, decoder_hidden)
+                decoder_input = decoder_output
+                decoder_outputs += [decoder_output]
 
-        return torch.cat([torch.unsqueeze(y, dim=0) for y in ys])
+        return torch.cat([torch.unsqueeze(y, dim=0) for y in decoder_outputs])

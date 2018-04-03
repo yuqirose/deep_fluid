@@ -149,9 +149,9 @@ class SmokeDataset(Dataset):
         data = states[:self.args.input_len,]
         label = states[self.args.input_len:,]
 
-        # seq_len x channel x height x width -> C x D x H x W
-        data = torch.from_numpy(data).type(torch.FloatTensor).permute(1,0,2,3)
-        label = torch.from_numpy(label).type(torch.FloatTensor).permute(1,0,2,3)
+        # seq_len x channel x height x width 
+        data = torch.from_numpy(data).type(torch.FloatTensor)
+        label = torch.from_numpy(label).type(torch.FloatTensor)
         # print("data shape ", data.shape,"label shape",label.shape)
 
         if self.transform is not None:

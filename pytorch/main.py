@@ -16,8 +16,8 @@ from train import train, test
 from reader import Smoke2dDataset, SmokeDataset
 import os
 import numpy as np
-# from seq2seq import Seq2Seq
-from cnn_ae import Conv3dAutoEncoder
+from seq2seq import Seq2Seq
+from cnn_ae import Conv2dAutoEncoder
 
 
 import visdom
@@ -38,20 +38,20 @@ parser.add_argument('--dataset', type=str, default="train", metavar='N')
 
 parser.add_argument('--valid-size', type=float, default=0.5, metavar='N')
 
-parser.add_argument('--input-len', type=int, default=5, metavar='N')
+parser.add_argument('--input-len', type=int, default=3, metavar='N')
 parser.add_argument('--output-len', type=int, default=1, metavar='N')
 parser.add_argument('--train-sim-num', type=int, default=3, metavar='N')
-parser.add_argument('--test-sim-num', type=int, default=2, metavar='N')
-parser.add_argument('--sim-len', type=int, default=100, metavar='N')
+parser.add_argument('--test-sim-num', type=int, default=1, metavar='N')
+parser.add_argument('--sim-len', type=int, default=50, metavar='N')
 
 parser.add_argument('--x-dim', type=int, default=64, metavar='N')
 parser.add_argument('--y-dim', type=int, default=64, metavar='N')
 parser.add_argument('--h-dim', type=int, default=256, metavar='N')
 parser.add_argument('--c-dim', type=int, default=1, metavar='N')
 
-parser.add_argument('--batch-size', type=int, default=5, metavar='N')
-parser.add_argument('--n-layers', type=int, default=2, metavar='N')
-parser.add_argument('--n-epochs', type=int, default=50, metavar='N',
+parser.add_argument('--batch-size', type=int, default=1, metavar='N')
+parser.add_argument('--n-layers', type=int, default=1, metavar='N')
+parser.add_argument('--n-epochs', type=int, default=10, metavar='N',
                                         help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=1e-4, metavar='LR',
                                         help='learning rate (default: 0.01)')
@@ -65,9 +65,9 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
                                         help='disables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                                         help='random seed (default: 1)')
-parser.add_argument('--print-freq', type=int, default=10, metavar='N',
+parser.add_argument('--print-freq', type=int, default=1, metavar='N',
                                         help='how many batches to wait before printing status')
-parser.add_argument('--vis-scalar-freq', type=int, default=10, metavar='N',
+parser.add_argument('--vis-scalar-freq', type=int, default=1, metavar='N',
                                         help='how many batches to wait before visualing results')
 parser.add_argument('--save-freq', type=int, default=5, metavar='N',
                                         help='how many epochs to wait before saving training status')
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     test_loader = torch.utils.data.DataLoader(test_dataset,
         batch_size=1)
 
-    model = Conv3dAutoEncoder(args)
+    model = Seq2Seq(args)
 
 
     if args.cuda:

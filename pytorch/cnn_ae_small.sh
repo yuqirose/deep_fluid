@@ -15,11 +15,11 @@ d=$(echo ${d} | tr '/' '-')
 start_time="$d-$t"
 
 n_epochs=5
-batch_size=1
-train_sim_num=2
-test_sim_num=1
-sim_len=3
-input_len=2
+batch_size=5
+train_sim_num=3
+test_sim_num=2
+sim_len=100
+input_len=3
 output_len=1
 save_dir="../saves/$start_time"
 

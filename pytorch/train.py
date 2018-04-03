@@ -50,7 +50,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
         #forward + backward + optimize
         optimizer.zero_grad()
         # batch x channel x height x width
-        output = model(data)
+        output = model(data, target)
 
         loss = F.mse_loss(output, target)
         loss.backward()
@@ -62,7 +62,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
         train_loss += loss.data[0]
 
         #printing
-        if batch_idx % args.print_freq == 1:
+        if batch_idx % args.print_freq == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\t Loss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader),
@@ -83,17 +83,17 @@ def train(train_loader, epoch, model, args, epoch_fig):
         # for m in model.modules():
         #     if isinstance(m, nn.Conv2d):
         #         print(m.weight.data.shape)
-        conv1_weight = model.encoder[0].weight.data
-        print(conv1_weight.shape)
+        # conv1_weight = model.encoder[0].weight.data
 
         # plot the filter per epoch
-        viz.images(
-            conv1_weight.view(-1,1, 4,4),
-            opts=dict(
-                jpgquality =1,
-                caption="Conv2d Filter"
-            )
-        )
+        # viz.images(
+        #     conv1_weight.view(-1,1, 4,4),
+        #     opts=dict(
+        #         jpgquality =1,
+        #         caption="Conv2d Filter"
+        #     )
+        # )
+        pass
 
     return train_loss
 
@@ -110,7 +110,7 @@ def test(test_loader, epoch, model, args, valid=True):
         # target = torch.transpose(target, 0, 1)
 
         # inference
-        output = model(data)
+        output = model(data, target)
 
         loss = F.mse_loss(output, target)
         test_loss += loss.data[0]

@@ -57,9 +57,9 @@ class Conv2dAutoEncoder(nn.Module):
         return x
 
 
-class Conv3dAutoEncoder(nn.Module):
+class Conv2dLSTM(nn.Module):
 
-    """3D Convolution with LSTMs
+    """2d Convolution with LSTMs
     
     Attributes:
         args (TYPE): Description
@@ -74,7 +74,7 @@ class Conv3dAutoEncoder(nn.Module):
         c_dim = self.args.c_dim
         # input N x C x D x H x W
         
-        self.encoder =  nn.Sequential(
+        self.cnn =  nn.Sequential(
             nn.Conv3d(c_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
             nn.BatchNorm3d(conv_dim),
             nn.Conv3d(conv_dim, conv_dim*2, 4, 2, 1),
@@ -85,18 +85,17 @@ class Conv3dAutoEncoder(nn.Module):
         )
         
 
-        self.decoder = nn.Sequential(
-            nn.ConvTranspose3d(conv_dim*8, conv_dim*4, 4, 2,1),
-            nn.BatchNorm3d(conv_dim*4),
-            nn.ConvTranspose3d(conv_dim*4, conv_dim*2, 4,2,1),
-            nn.BatchNorm3d(conv_dim*2),
-            nn.ConvTranspose3d(conv_dim*2, conv_dim, 4,2,1),
-            nn.BatchNorm3d(conv_dim),
-            nn.ConvTranspose3d(conv_dim,c_dim, 4,2,1)
-        )
-
+        self.gru = nn.GRU(conv_dim*8+2, self.args.h_dim, self.args.n_layers)
+        
 
     def forward(self, x):
-        x = self.encoder(x)
-        x = self.decoder(x)
+        print('input x', x.shape)
+        x = self.cnn(x)
+        print('cnn x', x.shape)
+        x = x.view(x.size()[0], 512, -1)
+        # (batch, input_size, seq_len) -> (batch, seq_len, input_size)
+        x = x.transpose(1, 2)
+        # (batch, seq_len, input_size) -> (seq_len, batch, input_size)
+        x = x.transpose(0, 1).contiguous()
+        x = self.gru(x)
         return x
