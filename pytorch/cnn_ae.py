@@ -6,9 +6,9 @@ import torch.optim as optim
 from torch.nn import Parameter
 from torch.autograd import Variable
 
-class AutoEncoder(nn.Module):
+class Conv2dAutoEncoder(nn.Module):
     def __init__(self, args):
-        super(AutoEncoder, self).__init__()
+        super(Conv2dAutoEncoder, self).__init__()
         # self.encoder = nn.Sequential(
         #     nn.Conv2d(1, 16, 3, stride=3, padding=1),  # b, 16, 10, 10
         #     nn.ReLU(True),
@@ -48,6 +48,51 @@ class AutoEncoder(nn.Module):
             nn.ConvTranspose2d(conv_dim*2, conv_dim, 4,2,1),
             nn.BatchNorm2d(conv_dim),
             nn.ConvTranspose2d(conv_dim,c_dim, 4,2,1)
+        )
+
+
+    def forward(self, x):
+        x = self.encoder(x)
+        x = self.decoder(x)
+        return x
+
+
+class Conv3dAutoEncoder(nn.Module):
+
+    """3D Convolution with LSTMs
+    
+    Attributes:
+        args (TYPE): Description
+        decoder (TYPE): Description
+        encoder (TYPE): Description
+    """
+    
+    def __init__(self, args):
+        super(Conv3dAutoEncoder, self).__init__()
+        self.args = args
+        conv_dim=4
+        c_dim = self.args.c_dim
+        # input N x C x D x H x W
+        
+        self.encoder =  nn.Sequential(
+            nn.Conv3d(c_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
+            nn.BatchNorm3d(conv_dim),
+            nn.Conv3d(conv_dim, conv_dim*2, 4, 2, 1),
+            nn.BatchNorm3d(conv_dim*2),
+            nn.Conv3d(conv_dim*2, conv_dim*4, 4, 2, 1),
+            nn.BatchNorm3d(conv_dim*4),
+            nn.Conv3d(conv_dim*4, conv_dim*8, 4, 2, 1),
+        )
+        
+
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose3d(conv_dim*8, conv_dim*4, 4, 2,1),
+            nn.BatchNorm3d(conv_dim*4),
+            nn.ConvTranspose3d(conv_dim*4, conv_dim*2, 4,2,1),
+            nn.BatchNorm3d(conv_dim*2),
+            nn.ConvTranspose3d(conv_dim*2, conv_dim, 4,2,1),
+            nn.BatchNorm3d(conv_dim),
+            nn.ConvTranspose3d(conv_dim,c_dim, 4,2,1)
         )
 
 

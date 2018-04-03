@@ -85,13 +85,16 @@ class Smoke2dDataset(Dataset):
         # channel x height x width
         data = torch.from_numpy(data).type(torch.FloatTensor)
         label = torch.from_numpy(label).type(torch.FloatTensor)
+        # print("data shape ", data.shape,"label shape",label.shape)
+
         if self.transform is not None:
             data = self.transform(data)
-            return data, label
+        
+        return data, label
 
 
 class SmokeDataset(Dataset):
-    def __init__(self, args, data_dir="../tensorflow/train_data/", num_sim=10, transform=None):
+    def __init__(self, args, train, transform=None):
         """
         sequence of smoke images datasets
         Args:
@@ -102,9 +105,18 @@ class SmokeDataset(Dataset):
                 on a sample.
         """
         self.args = args
-        self.data_dir = data_dir
-        self.T = args.input_len + args.output_len #sequence length
-        self.N = int (self.args.sim_len * num_sim /self.T )
+        self.train = train
+
+        if self.train:
+            self.data_dir = self.args.train_dir
+            self.num_sim = self.args.train_sim_num
+        else:
+            self.data_dir = self.args.test_dir
+            self.num_sim = self.args.test_sim_num
+        
+        self.T = self.args.input_len + self.args.output_len
+        self.N = (self.args.sim_len-self.T) * self.num_sim # number of seqs
+        self.transform = transform
 
 
     def __len__(self):
@@ -123,25 +135,27 @@ class SmokeDataset(Dataset):
         Returns:
             TYPE: Description
         """
-        states = np.empty([0, self.args.x_dim,self.args.y_dim])
+        states = np.empty([0, self.args.c_dim, self.args.x_dim,self.args.y_dim])
 
-        sim_idx = idx * self.T / self.args.sim_len
+        sim_idx = idx / (self.args.sim_len-self.T)
         sim_idx += 1000 #start from 1000
+        step_idx = idx  % (self.args.sim_len-self.T)
 
-        step_idx = idx * self.T % self.args.sim_len
 
         for t in range(self.T):
-            arr = read_npz_file(self.data_dir, sim_idx, step_idx)
-            states = np.append( states, arr, 0 )
+            arr = read_npz_file(self.data_dir, sim_idx, step_idx+t)
+            states = np.append( states, np.expand_dims(arr,0), 0 )
 
         data = states[:self.args.input_len,]
         label = states[self.args.input_len:,]
 
-        # seq_len x channel x height x width
-        data = torch.from_numpy(data).type(torch.FloatTensor)
-        label = torch.from_numpy(label).type(torch.FloatTensor)
+        # seq_len x channel x height x width -> C x D x H x W
+        data = torch.from_numpy(data).type(torch.FloatTensor).permute(1,0,2,3)
+        label = torch.from_numpy(label).type(torch.FloatTensor).permute(1,0,2,3)
+        # print("data shape ", data.shape,"label shape",label.shape)
 
-	#print("read sim_%04d"%(sim))
+        if self.transform is not None:
+            data = self.transform(data)
         return data, label
 
 

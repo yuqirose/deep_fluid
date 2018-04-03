@@ -13,11 +13,11 @@ from torch.utils.data import Dataset
 import torch.optim as optim
 from torch.utils.data.sampler import SubsetRandomSampler
 from train import train, test
-from reader import Smoke2dDataset
+from reader import Smoke2dDataset, SmokeDataset
 import os
 import numpy as np
-from seq2seq import Seq2Seq
-from cnn_ae import AutoEncoder
+# from seq2seq import Seq2Seq
+from cnn_ae import Conv3dAutoEncoder
 
 
 import visdom
@@ -38,10 +38,10 @@ parser.add_argument('--dataset', type=str, default="train", metavar='N')
 
 parser.add_argument('--valid-size', type=float, default=0.5, metavar='N')
 
-parser.add_argument('--input-len', type=int, default=2, metavar='N')
+parser.add_argument('--input-len', type=int, default=5, metavar='N')
 parser.add_argument('--output-len', type=int, default=1, metavar='N')
-parser.add_argument('--train-sim-num', type=int, default=100, metavar='N')
-parser.add_argument('--test-sim-num', type=int, default=100, metavar='N')
+parser.add_argument('--train-sim-num', type=int, default=3, metavar='N')
+parser.add_argument('--test-sim-num', type=int, default=2, metavar='N')
 parser.add_argument('--sim-len', type=int, default=100, metavar='N')
 
 parser.add_argument('--x-dim', type=int, default=64, metavar='N')
@@ -87,8 +87,12 @@ if __name__ == "__main__":
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
-    train_dataset = Smoke2dDataset(args, train=True, transform=normalize)
-    test_dataset  = Smoke2dDataset(args, train=False, transform=normalize)
+    # train_dataset = Smoke2dDataset(args, train=True, transform=normalize)
+    # test_dataset  = Smoke2dDataset(args, train=False, transform=normalize)
+
+    train_dataset = SmokeDataset(args, train=True)
+    test_dataset = SmokeDataset(args, train=False)
+
 
     num_train = len(train_dataset)
     indices = list(range(num_train))
@@ -107,8 +111,8 @@ if __name__ == "__main__":
     test_loader = torch.utils.data.DataLoader(test_dataset,
         batch_size=1)
 
-    #model = Seq2Seq(args)
-    model = AutoEncoder(args)
+    model = Conv3dAutoEncoder(args)
+
 
     if args.cuda:
         model = model.cuda()

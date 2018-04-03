@@ -37,8 +37,8 @@ def train(train_loader, epoch, model, args, epoch_fig):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,weight_decay=args.l2)
  
     for batch_idx, (data, target) in enumerate(train_loader):
-        #print('data shape', data.shape)
-        #print('target shape', target.shape)
+        # print('data shape', data.shape)
+        # print('target shape', target.shape)
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
