@@ -87,8 +87,8 @@ if __name__ == "__main__":
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
-    train_dataset = Smoke2dDataset(args, args.train_dir, args.train_sim_num, normalize)
-    test_dataset  = Smoke2dDataset(args, args.test_dir, args.test_sim_num, normalize)
+    train_dataset = Smoke2dDataset(args, train=True, transform=normalize)
+    test_dataset  = Smoke2dDataset(args, train=False, transform=normalize)
 
     num_train = len(train_dataset)
     indices = list(range(num_train))
@@ -101,7 +101,7 @@ if __name__ == "__main__":
 
 
     train_loader = torch.utils.data.DataLoader(train_dataset,
-        batch_size=args.batch_size,  sampler=train_sampler)
+        batch_size=args.batch_size, sampler=train_sampler)
     valid_loader = torch.utils.data.DataLoader(train_dataset,
         batch_size=args.batch_size, sampler=valid_sampler)
     test_loader = torch.utils.data.DataLoader(test_dataset,

@@ -30,7 +30,7 @@ def read_npz_file(data_dir, sim_idx, step_idx):
     return arr
 
 class Smoke2dDataset(Dataset):
-    def __init__(self, args, data_dir="../tensorflow/train_data/", num_sim=10, transform=None):
+    def __init__(self, args, train, transform=None):
         """
         2d smoke auto-encoding-decoding datasets
         Args:
@@ -46,8 +46,15 @@ class Smoke2dDataset(Dataset):
             root_dir (string): Directory with all the images.
         """
         self.args = args
-        self.data_dir = data_dir
-        self.num_sim = num_sim
+        self.train = train
+
+        if self.train:
+            self.data_dir = self.args.train_dir
+            self.num_sim = self.args.train_sim_num
+        else:
+            self.data_dir = self.args.test_dir
+            self.num_sim = self.args.test_sim_num
+
         self.N = self.args.sim_len * self.num_sim
         self.transform = transform
 
