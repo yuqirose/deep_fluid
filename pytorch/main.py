@@ -125,6 +125,7 @@ if __name__ == "__main__":
             legend=['Train Loss', 'Valid Loss']
         )
     )
+
     epoch_fig = viz.line(
         X=torch.zeros((1,)).cpu(),
         Y=torch.zeros((1,)).cpu(),
@@ -135,6 +136,8 @@ if __name__ == "__main__":
             legend=['Loss']
         )
     )
+
+
     for epoch in range(1, args.n_epochs + 1):
         
         #training + validation

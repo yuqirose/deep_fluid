@@ -25,13 +25,13 @@ PLOT_ON = True
 def train(train_loader, epoch, model, args, epoch_fig):
 
     train_loss = 0
-    # plot the loss curve per epoch
+    # intialize to zero
     viz.line(
-    X=torch.ones((1,)).cpu(),
-    Y=torch.zeros((1,)).cpu(),
-    win=epoch_fig,
-    update='update')
-
+        X=torch.zeros((1,)).cpu(),
+        Y=torch.zeros((1,)).cpu(),
+        win= epoch_fig,
+        update='update'
+    )
 
     clip = 10
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,weight_decay=args.l2)
@@ -71,22 +71,30 @@ def train(train_loader, epoch, model, args, epoch_fig):
             viz.line(
             X=torch.ones((1,)).cpu() * batch_idx,
             Y=torch.Tensor([loss.data[0]/args.batch_size]).cpu(),
-            win=epoch_fig,
+            win= epoch_fig,
             update='append'
             )
 
     train_loss/= len(train_loader.dataset)
     print('====> Epoch: {} Average loss: {:.4f}'.format(epoch, train_loss ))
 
-    if PLOT_ON == True and epoch %5==0:
-        pass
-        # import matplotlib.pyplot as plt
-        # fig = plt.figure()
-        # ax = fig.gca(projection='3d')
-        # plot_scatter3d(ax,  data[:,0,:].data, 'k')
-        # plot_scatter3d(ax,  target[:,0,:].data, 'r')
-        # plot_scatter3d(ax, output[:,0,:].data, 'b')
-        # viz.matplot(plt)
+    if PLOT_ON == True:
+        # get model weights
+        # for m in model.modules():
+        #     if isinstance(m, nn.Conv2d):
+        #         print(m.weight.data.shape)
+        conv1_weight = model.encoder[0].weight.data
+        print(conv1_weight.shape)
+
+        # plot the filter per epoch
+        viz.images(
+            conv1_weight.view(-1,1, 4,4),
+            opts=dict(
+                jpgquality =1,
+                caption="Conv2d Filter"
+            )
+        )
+
     return train_loss
 
 def test(test_loader, epoch, model, args, valid=True):
@@ -112,7 +120,7 @@ def test(test_loader, epoch, model, args, valid=True):
             sim_idx += 1000 #start from 1000
             step_idx = i  % args.sim_len
             fname ="s%04d_t%04d"
-	    fname = fname%(sim_idx,step_idx)
+            fname = fname%(sim_idx,step_idx)
             save_fname = "/true_"+fname
             np.savez(args.save_dir+save_fname, data.data.cpu().numpy())
             save_fname = "/pred_"+fname
@@ -125,12 +133,14 @@ def test(test_loader, epoch, model, args, valid=True):
                     opts=dict(
                     caption='true'+fname, 
                     jpgquality=20       
-                    ))
+                    )
+                )
                 viz.images(output.data.cpu(),
                     opts=dict(
                     caption='pred'+fname, 
                     jpgquality=20       
-                    ))
+                    )
+                )
                 
                 # video = output.permute(0,2,3,1).data.cpu().numpy() 
                 # viz.video(tensor=video) #LxHxWxC

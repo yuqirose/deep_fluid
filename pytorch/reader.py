@@ -47,10 +47,9 @@ class Smoke2dDataset(Dataset):
         """
         self.args = args
         self.data_dir = data_dir
-	self.num_sim = num_sim
+        self.num_sim = num_sim
         self.N = self.args.sim_len * self.num_sim
-	
-	self.transform = transform
+        self.transform = transform
 
     def __len__(self):
         """ num of frames        
@@ -79,10 +78,9 @@ class Smoke2dDataset(Dataset):
         # channel x height x width
         data = torch.from_numpy(data).type(torch.FloatTensor)
         label = torch.from_numpy(label).type(torch.FloatTensor)
-	
-	if self.transform is not None:
-	    data = self.transform(data)
-        return data, label
+        if self.transform is not None:
+            data = self.transform(data)
+            return data, label
 
 
 class SmokeDataset(Dataset):

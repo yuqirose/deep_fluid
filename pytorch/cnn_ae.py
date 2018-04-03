@@ -27,8 +27,8 @@ class AutoEncoder(nn.Module):
         # ) 
         conv_dim=4
         self.args = args
-	c_dim = self.args.c_dim
-
+        c_dim = self.args.c_dim
+        
         self.encoder =  nn.Sequential(
             nn.Conv2d(c_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
             nn.BatchNorm2d(conv_dim),
