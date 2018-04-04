@@ -121,7 +121,7 @@ if __name__ == "__main__":
     # initialize visdom loss plot
     fig = viz.line(
         X=torch.zeros((1,)).cpu(),
-        Y=torch.zeros((1, 2)).cpu(),
+        Y=torch.ones((1, 2)).cpu(),
         opts=dict(
             xlabel='Epoch',
             ylabel='Loss',
@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
     epoch_fig = viz.line(
         X=torch.zeros((1,)).cpu(),
-        Y=torch.zeros((1,)).cpu(),
+        Y=torch.ones((1,)).cpu(),
         opts=dict(
             xlabel='Iteration',
             ylabel='Loss',

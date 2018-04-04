@@ -14,13 +14,13 @@ d=$(echo ${d} | tr '/' '-')
 
 start_time="$d-$t"
 
-train_sim_num=80
-test_sim_num=10
+train_sim_num=40
+test_sim_num=5
 sim_len=100
 
 h_dim=64
 
-n_epochs=10
+n_epochs=5
 batch_size=5
 lr=1e-3
 l2=1e-2
