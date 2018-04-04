@@ -6,9 +6,9 @@ import torch.optim as optim
 from torch.nn import Parameter
 from torch.autograd import Variable
 
-class Conv2dAutoEncoder(nn.Module):
+class Conv2dAE(nn.Module):
     def __init__(self, args):
-        super(Conv2dAutoEncoder, self).__init__()
+        super(Conv2dAE, self).__init__()
         # self.encoder = nn.Sequential(
         #     nn.Conv2d(1, 16, 3, stride=3, padding=1),  # b, 16, 10, 10
         #     nn.ReLU(True),
@@ -68,7 +68,7 @@ class Conv2dLSTM(nn.Module):
     """
     
     def __init__(self, args):
-        super(Conv3dAutoEncoder, self).__init__()
+        super(Conv2dLSTM, self).__init__()
         self.args = args
         conv_dim=4
         c_dim = self.args.c_dim

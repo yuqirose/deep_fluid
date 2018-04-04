@@ -17,7 +17,7 @@ from reader import Smoke2dDataset, SmokeDataset
 import os
 import numpy as np
 from seq2seq import Seq2Seq
-from cnn_ae import Conv2dAutoEncoder
+from cnn_ae import Conv2dAE
 
 
 import visdom
@@ -87,11 +87,11 @@ if __name__ == "__main__":
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
-    # train_dataset = Smoke2dDataset(args, train=True, transform=normalize)
-    # test_dataset  = Smoke2dDataset(args, train=False, transform=normalize)
+    train_dataset = Smoke2dDataset(args, train=True, transform=None)
+    test_dataset  = Smoke2dDataset(args, train=False, transform=None)
 
-    train_dataset = SmokeDataset(args, train=True)
-    test_dataset = SmokeDataset(args, train=False)
+    # train_dataset = SmokeDataset(args, train=True)
+    # test_dataset = SmokeDataset(args, train=False)
 
 
     num_train = len(train_dataset)
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     test_loader = torch.utils.data.DataLoader(test_dataset,
         batch_size=1)
 
-    model = Seq2Seq(args)
+    model = Conv2dAE(args)
 
 
     if args.cuda:

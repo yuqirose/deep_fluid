@@ -50,7 +50,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
         #forward + backward + optimize
         optimizer.zero_grad()
         # batch x channel x height x width
-        output = model(data, target)
+        output = model(data)
 
         loss = F.mse_loss(output, target)
         loss.backward()
@@ -110,7 +110,7 @@ def test(test_loader, epoch, model, args, valid=True):
         # target = torch.transpose(target, 0, 1)
 
         # inference
-        output = model(data, target)
+        output = model(data)
 
         loss = F.mse_loss(output, target)
         test_loss += loss.data[0]
@@ -127,6 +127,25 @@ def test(test_loader, epoch, model, args, valid=True):
             np.savez(args.save_dir+save_fname, output.data.cpu().numpy())
             print('Saved prediction to '+args.save_dir+save_fname)
 
+            if PLOT_ON == True:
+                if target.data.dim()==5:
+                    target = torch.squeeze(target,0)
+                    output = torch.squeeze(output,0)
+
+                viz.images(target.data.cpu(),
+                    opts=dict(
+                    caption='true'+fname, 
+                    jpgquality=20       
+                    )
+                )
+
+                viz.images(output.data.cpu(),
+                    opts=dict(
+                    caption='pred'+fname, 
+                    jpgquality=20       
+                    )
+                )
+
     test_loss /= len(test_loader.dataset)
 
     if valid==True:
@@ -134,24 +153,7 @@ def test(test_loader, epoch, model, args, valid=True):
     else:
         print('====> Test set loss: Loss = {:.4f} '.format(test_loss))
 
-    if PLOT_ON == True and valid==False:
-        if target.data.dim()==5:
-            target = torch.squeeze(target,0)
-            output = torch.squeeze(output,0)
 
-        viz.images(target.data.cpu(),
-            opts=dict(
-            caption='true'+fname, 
-            jpgquality=20       
-            )
-        )
-
-        viz.images(output.data.cpu(),
-            opts=dict(
-            caption='pred'+fname, 
-            jpgquality=20       
-            )
-        )
 
     # video = output.permute(0,2,3,1).data.cpu().numpy() 
     # viz.video(tensor=video) #LxHxWxC
