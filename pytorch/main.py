@@ -51,7 +51,7 @@ parser.add_argument('--c-dim', type=int, default=1, metavar='N')
 
 parser.add_argument('--batch-size', type=int, default=1, metavar='N')
 parser.add_argument('--n-layers', type=int, default=1, metavar='N')
-parser.add_argument('--n-epochs', type=int, default=10, metavar='N',
+parser.add_argument('--n-epochs', type=int, default=2, metavar='N',
                                         help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=1e-4, metavar='LR',
                                         help='learning rate (default: 0.01)')
@@ -65,7 +65,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
                                         help='disables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                                         help='random seed (default: 1)')
-parser.add_argument('--print-freq', type=int, default=1, metavar='N',
+parser.add_argument('--print-freq', type=int, default=5, metavar='N',
                                         help='how many batches to wait before printing status')
 parser.add_argument('--vis-scalar-freq', type=int, default=1, metavar='N',
                                         help='how many batches to wait before visualing results')

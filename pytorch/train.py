@@ -127,32 +127,34 @@ def test(test_loader, epoch, model, args, valid=True):
             np.savez(args.save_dir+save_fname, output.data.cpu().numpy())
             print('Saved prediction to '+args.save_dir+save_fname)
 
-            if PLOT_ON == True and valid ==False and step_idx==args.sim_len-1:
-                # pass
-                viz.images(data.data.cpu(),
-                    opts=dict(
-                    caption='true'+fname, 
-                    jpgquality=20       
-                    )
-                )
-                viz.images(output.data.cpu(),
-                    opts=dict(
-                    caption='pred'+fname, 
-                    jpgquality=20       
-                    )
-                )
-                
-                # video = output.permute(0,2,3,1).data.cpu().numpy() 
-                # viz.video(tensor=video) #LxHxWxC
-
-
-
     test_loss /= len(test_loader.dataset)
 
     if valid==True:
         print('====> Valid set loss: Loss = {:.4f} '.format(test_loss))
     else:
         print('====> Test set loss: Loss = {:.4f} '.format(test_loss))
+
+    if PLOT_ON == True and valid==False:
+        if target.data.dim()==5:
+            target = torch.squeeze(target,0)
+            output = torch.squeeze(output,0)
+
+        viz.images(target.data.cpu(),
+            opts=dict(
+            caption='true'+fname, 
+            jpgquality=20       
+            )
+        )
+
+        viz.images(output.data.cpu(),
+            opts=dict(
+            caption='pred'+fname, 
+            jpgquality=20       
+            )
+        )
+
+    # video = output.permute(0,2,3,1).data.cpu().numpy() 
+    # viz.video(tensor=video) #LxHxWxC
 
     return test_loss
 
