@@ -17,7 +17,7 @@ from reader import Smoke2dDataset, SmokeDataset
 import os
 import numpy as np
 from seq2seq import Seq2Seq
-from cnn_ae import Conv2dAE
+from cnn_ae import Conv2dAE, Conv2dLSTM
 
 
 import visdom
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     test_loader = torch.utils.data.DataLoader(test_dataset,
         batch_size=1)
 
-    model = Conv2dAE(args)
+    model = Conv2dLSTM(args)
 
 
     if args.cuda:
