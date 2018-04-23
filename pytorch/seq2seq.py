@@ -28,16 +28,20 @@ class EncoderRNN(nn.Module):
             nn.Conv2d(conv_dim*4, conv_dim*8, 4, 2, 1)
         )
 
-        input_size = int(self.args.x_dim * self.args.y_dim/(2**3) ) #tbd:calculate
-        self.fc = nn.Linear(input_size, self.hidden_size)
-        self.gru = nn.GRU(hidden_size, self.hidden_size, self.n_layers)
+        # input_size = int(self.args.x_dim * self.args.y_dim/(2**3) ) #tbd:calculate
+        input_size = self.args.x_dim*self.args.y_dim*self.args.c_dim 
+        self.fc1 = nn.Linear(input_size, self.hidden_size)
+        self.gru = nn.GRU(self.hidden_size, self.hidden_size, self.n_layers)
+        self.fc2 = nn.Linear(self.hidden_size, input_size)
 
     def forward(self, x, h):
-        x = self.cnn(x) #channel_in=1
+        # x = self.cnn(x) #channel_in=1
         x = x.view(x.size(0), -1)        
-        x = self.fc(x)
+        x = self.fc1(x)
         x = torch.unsqueeze(x, 0) # T=1, TxBxD
         x, h = self.gru(x, h)
+        x = self.fc2(x)
+        x = x.view(x.size(0), 1, self.args.x_dim, self.args.y_dim)
         return x, h
 
     def initHidden(self):
@@ -57,7 +61,9 @@ class DecoderRNN(nn.Module):
         conv_dim = 4
         c_dim = self.args.c_dim
 
-        input_size = int(self.args.x_dim * self.args.y_dim/(2**3))
+        # input_size = int(self.args.x_dim * self.args.y_dim/(2**3))
+        input_size = self.args.x_dim*self.args.y_dim*self.args.c_dim 
+
         self.cnn_enc =  nn.Sequential(
             nn.Conv2d(c_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
             nn.BatchNorm2d(conv_dim),
@@ -82,17 +88,16 @@ class DecoderRNN(nn.Module):
         )
 
     def forward(self, x, h):
-        x = self.cnn_enc(x) 
+        # x = self.cnn_enc(x) 
         x = x.view(x.size(0), -1)        
         x = self.fc1(x)
-
         x = torch.unsqueeze(x, 0) # T=1, TxBxD
         x, h = self.gru(x, h) #TxBxD
-        x = torch.squeeze(x, 0)
+        # x = torch.squeeze(x, 0)
         x = self.fc2(x)
-
-        x = x.view(x.size(0), 32, 4, 4) # channel up, kernel down with more convs
-        x = self.cnn_dec(x)
+        # x = x.view(x.size(0), 32, 4, 4) # channel up, kernel down with more convs
+        # x = self.cnn_dec(x)
+        x = x.view(1,  self.args.x_dim, self.args.y_dim)
         return x, h
 
     def initHidden(self):

@@ -68,7 +68,7 @@ class Conv2dLSTM(nn.Module):
     """
     
     def __init__(self, args):
-        super(Conv3dLSTM, self).__init__()
+        super(Conv2dLSTM, self).__init__()
         self.args = args
         conv_dim=4
         c_dim = self.args.c_dim
