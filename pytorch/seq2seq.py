@@ -15,18 +15,20 @@ class EncoderRNN(nn.Module):
         self.args = args
         self.n_layers = n_layers
         self.hidden_size = hidden_size
+        c_dim = self.args.c_dim
         conv_dim = 4
 
         self.cnn =  nn.Sequential(
-            nn.Conv2d(self.args.c_dim, conv_dim, 4, 2, 1),
-            nn.BatchNorm2d(4),
+            nn.Conv2d(c_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
+            nn.BatchNorm2d(conv_dim),
             nn.Conv2d(conv_dim, conv_dim*2, 4, 2, 1),
             nn.BatchNorm2d(conv_dim*2),
             nn.Conv2d(conv_dim*2, conv_dim*4, 4, 2, 1),
             nn.BatchNorm2d(conv_dim*4),
+            nn.Conv2d(conv_dim*4, conv_dim*8, 4, 2, 1)
         )
 
-        input_size = 1024 #tbd:calculate
+        input_size = int(self.args.x_dim * self.args.y_dim/(2**3) ) #tbd:calculate
         self.fc = nn.Linear(input_size, self.hidden_size)
         self.gru = nn.GRU(hidden_size, self.hidden_size, self.n_layers)
 
@@ -55,22 +57,23 @@ class DecoderRNN(nn.Module):
         conv_dim = 4
         c_dim = self.args.c_dim
 
-        input_size = 1024
+        input_size = int(self.args.x_dim * self.args.y_dim/(2**3))
         self.cnn_enc =  nn.Sequential(
-            nn.Conv2d(self.args.c_dim, conv_dim, 4, 2, 1),
-            nn.BatchNorm2d(4),
+            nn.Conv2d(c_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
+            nn.BatchNorm2d(conv_dim),
             nn.Conv2d(conv_dim, conv_dim*2, 4, 2, 1),
             nn.BatchNorm2d(conv_dim*2),
             nn.Conv2d(conv_dim*2, conv_dim*4, 4, 2, 1),
             nn.BatchNorm2d(conv_dim*4),
+            nn.Conv2d(conv_dim*4, conv_dim*8, 4, 2, 1)
         )
         self.fc1 = nn.Linear(input_size, hidden_size)
-
-
         self.gru = nn.GRU(hidden_size, hidden_size, n_layers)
         self.fc2 = nn.Linear(hidden_size, input_size)
 
         self.cnn_dec =  nn.Sequential(
+            nn.ConvTranspose2d(conv_dim*8, conv_dim*4, 4, 2,1),
+            nn.BatchNorm2d(conv_dim*4),
             nn.ConvTranspose2d(conv_dim*4, conv_dim*2, 4,2,1),
             nn.BatchNorm2d(conv_dim*2),
             nn.ConvTranspose2d(conv_dim*2, conv_dim, 4,2,1),
@@ -88,7 +91,7 @@ class DecoderRNN(nn.Module):
         x = torch.squeeze(x, 0)
         x = self.fc2(x)
 
-        x = x.view(x.size(0), 16, 8, 8)
+        x = x.view(x.size(0), 32, 4, 4) # channel up, kernel down with more convs
         x = self.cnn_dec(x)
         return x, h
 

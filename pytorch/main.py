@@ -17,8 +17,7 @@ from reader import Smoke2dDataset, SmokeDataset
 import os
 import numpy as np
 from seq2seq import Seq2Seq
-from cnn_ae import Conv2dAE, Conv2dLSTM
-
+#from cnn_ae import Conv2dAE, Conv3dLSTM
 
 import visdom
 viz = visdom.Visdom()
@@ -49,7 +48,7 @@ parser.add_argument('--y-dim', type=int, default=64, metavar='N')
 parser.add_argument('--h-dim', type=int, default=256, metavar='N')
 parser.add_argument('--c-dim', type=int, default=1, metavar='N')
 
-parser.add_argument('--batch-size', type=int, default=1, metavar='N')
+parser.add_argument('--batch-size', type=int, default=5, metavar='N')
 parser.add_argument('--n-layers', type=int, default=1, metavar='N')
 parser.add_argument('--n-epochs', type=int, default=2, metavar='N',
                                         help='number of epochs to train (default: 10)')
@@ -59,7 +58,6 @@ parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
                                         help='SGD momentum (default: 0.5)')
 parser.add_argument('--l2', type=float, default=0.005, metavar='LR')
 parser.add_argument('--opt', default="sgd")
-
 
 parser.add_argument('--no-cuda', action='store_true', default=False,
                                         help='disables CUDA training')
@@ -87,11 +85,11 @@ if __name__ == "__main__":
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
-    train_dataset = Smoke2dDataset(args, train=True, transform=None)
-    test_dataset  = Smoke2dDataset(args, train=False, transform=None)
+    #train_dataset = Smoke2dDataset(args, train=True, transform=None)
+    #test_dataset  = Smoke2dDataset(args, train=False, transform=None)
 
-    # train_dataset = SmokeDataset(args, train=True)
-    # test_dataset = SmokeDataset(args, train=False)
+    train_dataset = SmokeDataset(args, train=True)
+    test_dataset = SmokeDataset(args, train=False)
 
 
     num_train = len(train_dataset)
@@ -111,7 +109,8 @@ if __name__ == "__main__":
     test_loader = torch.utils.data.DataLoader(test_dataset,
         batch_size=1)
 
-    model = Conv2dLSTM(args)
+    #model = ConvLSTM(args)
+    model = Seq2Seq(args)
 
 
     if args.cuda:

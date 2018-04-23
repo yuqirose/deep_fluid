@@ -37,8 +37,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,weight_decay=args.l2)
  
     for batch_idx, (data, target) in enumerate(train_loader):
-        # print('data shape', data.shape)
-        # print('target shape', target.shape)
+        # print("data shape ", data.shape,"target shape",target.shape)
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
@@ -50,13 +49,13 @@ def train(train_loader, epoch, model, args, epoch_fig):
         #forward + backward + optimize
         optimizer.zero_grad()
         # batch x channel x height x width
-        output = model(data)
+        output= model(data,target)
+        # print('output shape', (output[0].shape))
 
         loss = F.mse_loss(output, target)
         loss.backward()
         optimizer.step()
 
-        # print(output[0,0,:], target[0,0,:])
         #grad norm clipping, only in pytorch version >= 1.10
         nn.utils.clip_grad_norm(model.parameters(), clip)
         train_loss += loss.data[0]
@@ -110,7 +109,7 @@ def test(test_loader, epoch, model, args, valid=True):
         # target = torch.transpose(target, 0, 1)
 
         # inference
-        output = model(data)
+        output = model(data, target)
 
         loss = F.mse_loss(output, target)
         test_loss += loss.data[0]

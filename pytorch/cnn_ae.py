@@ -58,7 +58,6 @@ class Conv2dAE(nn.Module):
 
 
 class Conv2dLSTM(nn.Module):
-
     """2d Convolution with LSTM:
     next frame prediction
     
@@ -69,12 +68,12 @@ class Conv2dLSTM(nn.Module):
     """
     
     def __init__(self, args):
-        super(Conv2dLSTM, self).__init__()
+        super(Conv3dLSTM, self).__init__()
         self.args = args
         conv_dim=4
         c_dim = self.args.c_dim
-        # input N x C x D x H x W
-        
+
+        # input size: N x C x D x H x W
         self.encoder =  nn.Sequential(
             nn.Conv2d(c_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
             nn.BatchNorm2d(conv_dim),
@@ -95,18 +94,21 @@ class Conv2dLSTM(nn.Module):
             nn.BatchNorm2d(conv_dim),
             nn.ConvTranspose2d(conv_dim,c_dim, 4,2,1)
         )
-        
+        self.fc = nn.Linear(input_size, self.hidden_size)
         #input of shape (seq_len, batch, input_size)
         self.gru = nn.GRU(conv_dim*8+2, self.args.h_dim, self.args.n_layers)
         
     def forward(self, x):
+        x = x.transpose(1,2) #swap C and D
+        print('input x', x.shape)
+
         x = self.encoder(x)
         print('cnn x', x.shape)
         # (batch, input_size, seq_len) -> (batch, seq_len, input_size)
-        y = x.view(x.size()[0], seq_len, -1)
+        y = x.view(x.size()[0], 1, -1).contiguous()
         # (batch, seq_len, input_size) -> (seq_len, batch, input_size)
         y = y.transpose(0, 1).contiguous()
-        print('lstm y', y.shape)
+        print('lstm y', y.shape) # dim
         y = self.gru(y)
         x = y.view(x.shape)
         x = self.decoder(x)
