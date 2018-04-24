@@ -36,7 +36,7 @@ class EncoderRNN(nn.Module):
 
     def forward(self, x, h):
         # x = self.cnn(x) #channel_in=1
-        x = x.view(x.size(0), -1)        
+        x = x.contiguous().view(x.size(0), -1)        
         x = self.fc1(x)
         x = torch.unsqueeze(x, 0) # T=1, TxBxD
         x, h = self.gru(x, h)
