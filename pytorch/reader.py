@@ -155,7 +155,8 @@ class SmokeDataset(Dataset):
         # print("data shape ", data.shape,"label shape",label.shape)
 
         if self.transform is not None:
-            data = self.transform(data)
+            data  = (data - 0.00015)/ (0.0088)    
+            label  = (label - 0.00015)/ (0.0088)   
         return data, label
 
 

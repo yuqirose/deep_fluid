@@ -46,14 +46,14 @@ parser.add_argument('--sim-len', type=int, default=50, metavar='N')
 
 parser.add_argument('--x-dim', type=int, default=64, metavar='N')
 parser.add_argument('--y-dim', type=int, default=64, metavar='N')
-parser.add_argument('--h-dim', type=int, default=256, metavar='N')
+parser.add_argument('--h-dim', type=int, default=1024, metavar='N')
 parser.add_argument('--c-dim', type=int, default=1, metavar='N')
 
 parser.add_argument('--batch-size', type=int, default=1, metavar='N')
 parser.add_argument('--n-layers', type=int, default=1, metavar='N')
 parser.add_argument('--n-epochs', type=int, default=2, metavar='N',
                                         help='number of epochs to train (default: 10)')
-parser.add_argument('--lr', type=float, default=1e-4, metavar='LR',
+parser.add_argument('--lr', type=float, default=1e-2, metavar='LR',
                                         help='learning rate (default: 0.01)')
 parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
                                         help='SGD momentum (default: 0.5)')
@@ -65,7 +65,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
                                         help='disables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                                         help='random seed (default: 1)')
-parser.add_argument('--print-freq', type=int, default=5, metavar='N',
+parser.add_argument('--print-freq', type=int, default=10, metavar='N',
                                         help='how many batches to wait before printing status')
 parser.add_argument('--vis-scalar-freq', type=int, default=1, metavar='N',
                                         help='how many batches to wait before visualing results')
@@ -84,15 +84,13 @@ args.cuda = not args.no_cuda and torch.cuda.is_available()
 if __name__ == "__main__":
     if args.cuda and torch.cuda.is_available(): print("Using CUDA")
 
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
+    normalize = transforms.Normalize(mean=0.00015, std=0.0088)
 
     # train_dataset = Smoke2dDataset(args, train=True, transform=None)
     # test_dataset  = Smoke2dDataset(args, train=False, transform=None)
 
-    train_dataset = SmokeDataset(args, train=True)
-    test_dataset = SmokeDataset(args, train=False)
-
+    train_dataset = SmokeDataset(args, train=True, transform=normalize)
+    test_dataset = SmokeDataset(args, train=False, transform=normalize)
 
     num_train = len(train_dataset)
     indices = list(range(num_train))

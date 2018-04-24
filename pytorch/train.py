@@ -41,18 +41,18 @@ def train(train_loader, epoch, model, args, epoch_fig):
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
-        # original: batch x seq_len x dim
-        # data = torch.transpose(data, 0, 1)
-        # target = torch.transpose(target, 0, 1)
-        # transposed: seq_len x batch x dim
-       
+
         #forward + backward + optimize
         optimizer.zero_grad()
         # batch x channel x height x width
         output= model(data,target)
-        # print('output shape', (output[0].shape))
+        # output
+        # print('target', target.data[0][:10])
+        # print('output', output.data[0][:10])
 
         loss = F.mse_loss(output, target)
+
+
         loss.backward()
         optimizer.step()
 
@@ -111,7 +111,12 @@ def test(test_loader, epoch, model, args, valid=True):
         # inference
         output = model(data, target)
 
+        # output
+        # print('target', target.data[0][:10])
+        # print('output', output.data[0][:10])
+
         loss = F.mse_loss(output, target)
+
         test_loss += loss.data[0]
         if valid==False:
             # save test predictions
