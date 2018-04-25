@@ -170,12 +170,12 @@ class Seq2Seq(nn.Module):
         self.args = args
         T = torch.cuda if self.args.cuda else torch
 
-        self.encoder = EncoderRNN(self.args.h_dim, args=args)
+        self.encoder = EncoderRNN(self.args.h_dim, self.args.n_layers, args=args)
         self.use_attn = False
         if self.use_attn:
             self.decoder = AttnDecoderRNN(self.args.h_dim, args=args)
         else:
-            self.decoder = DecoderRNN(self.args.h_dim, args=args)
+            self.decoder = DecoderRNN(self.args.h_dim, self.args.n_layers, args=args)
 
         self.teacher_forcing_ratio = 0.5
 

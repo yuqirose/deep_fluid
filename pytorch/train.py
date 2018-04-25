@@ -94,7 +94,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
         #         caption="Conv2d Filter"
         #     )
         # )
-        if PLOT_ON == True:
+        if PLOT_ON == True and epoch%10==1:
             if target.data.dim()==5:
                 target = torch.squeeze(target,0)
                 output = torch.squeeze(output,0)
@@ -114,7 +114,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
                 jpgquality=20       
                 )
             )
-        pass
+       
 
         
 
