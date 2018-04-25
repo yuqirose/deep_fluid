@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.nn import Parameter
 from torch.autograd import Variable
+import numpy as np
 import random
 
 EOS_token = 1
@@ -89,7 +90,7 @@ class DecoderRNN(nn.Module):
 
     def forward(self, x, h):
         # x = self.cnn_enc(x) 
-        x = x.view(x.size(0), -1)        
+        x = x.view(x.size(0), -1)
         x = self.fc1(x)
         x = torch.unsqueeze(x, 0) # T=1, TxBxD
         x, h = self.gru(x, h) #TxBxD
@@ -229,4 +230,6 @@ class Seq2Seq(nn.Module):
                 decoder_input = decoder_output
                 decoder_outputs += [decoder_output]
 
-        return torch.cat([torch.unsqueeze(y, dim=0) for y in decoder_outputs])
+        decoder_outputs_with_t = [torch.unsqueeze(y.permute(1,0,2,3), 1) for y in decoder_outputs]
+        output = torch.cat(decoder_outputs_with_t, dim=1)
+        return output

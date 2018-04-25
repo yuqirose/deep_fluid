@@ -20,7 +20,7 @@ sim_len=100
 
 h_dim=1024
 
-n_epochs=100
+n_epochs=2
 batch_size=5
 lr=1e-3
 l2=1e-2

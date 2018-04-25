@@ -47,6 +47,8 @@ def train(train_loader, epoch, model, args, epoch_fig):
         # batch x channel x height x width
         output= model(data,target)
         # output
+        # print("output shape ", output.shape)
+        # print("target shape ", target.shape)
         # print('target', target.data[0][:10])
         # print('output', output.data[0][:10])
 
@@ -97,6 +99,8 @@ def train(train_loader, epoch, model, args, epoch_fig):
                 target = torch.squeeze(target,0)
                 output = torch.squeeze(output,0)
 
+            print(target.data[0].shape, output.data[0].shape)
+
             viz.images(target.data[0].cpu(),
                 opts=dict(
                 caption='true', 
@@ -110,6 +114,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
                 jpgquality=20       
                 )
             )
+        pass
 
         
 
