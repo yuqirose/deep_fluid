@@ -130,7 +130,7 @@ if __name__ == "__main__":
 
     epoch_fig = viz.line(
         X=torch.zeros((1,)).cpu(),
-        Y=torch.ones((1,)).cpu(),
+        Y=100*torch.ones((1,)).cpu(),
         opts=dict(
             xlabel='Iteration',
             ylabel='Loss',
@@ -138,18 +138,23 @@ if __name__ == "__main__":
             legend=['Loss']
         )
     )
-
+    train_losses = []
+    valid_losses = []
 
     for epoch in range(1, args.n_epochs + 1):
         
         #training + validation
         train_loss = train(train_loader, epoch, model, args, epoch_fig)
         valid_loss = test(valid_loader, epoch, model,args)
+        
+        # save train valid loss
+        train_losses.append(train_loss)
+        valid_losses.append(valid_loss)
 
         #plot
         viz.line(
             X=torch.ones((1)).cpu() * epoch,
-            Y=torch.Tensor([train_loss,valid_loss]).unsqueeze(0).cpu() / args.n_epochs,
+            Y=torch.Tensor([train_loss,valid_loss]).unsqueeze(0).cpu(),
             win=fig,
             update='append'
         )
@@ -163,3 +168,5 @@ if __name__ == "__main__":
 
     # testing
     test_loss = test(test_loader, epoch, model, args,valid=False)
+    # save losses
+    torch.save([train_losses, valid_losses, test_loss], args.save_dir+"/losses.pth")
