@@ -146,7 +146,7 @@ if __name__ == "__main__":
         
         #training + validation
         train_loss = train(train_loader, epoch, model, args, epoch_fig)
-        valid_loss = test(valid_loader, epoch, model,args)
+        valid_loss = test(valid_loader, epoch, model, args)
         
         # save train valid loss
         train_losses.append(train_loss)
@@ -164,8 +164,8 @@ if __name__ == "__main__":
             fn = 'vrnn_state_dict_'+str(epoch)+'.pth'
             if not os.path.exists(args.save_dir):
                 os.makedirs(args.save_dir)
-            torch.save(model.state_dict(), args.save_dir+"/"+fn)
-            print('Saved model to '+fn)
+            # torch.save(model.state_dict(), args.save_dir+"/"+fn)
+            # print('Saved model to '+fn)
 
     # testing
     test_loss = test(test_loader, epoch, model, args,valid=False)

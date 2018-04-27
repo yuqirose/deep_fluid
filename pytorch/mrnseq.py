@@ -168,24 +168,25 @@ class FocDecoderRNN(nn.Module):
         self.args = args
 
         self.n_layers = n_layers
-        self.hidden_size = hidden_size
-        input_size = self.args.x_dim*self.args.y_dim*self.args.c_dim 
         self.scale = 8
+        input_size = self.args.x_dim*self.args.y_dim*self.args.c_dim 
+        low_input_size = int(input_size/(self.scale**2))
 
-        self.embed1 = nn.Linear(input_size, hidden_size)
+        self.embed1 = nn.Linear(low_input_size, hidden_size)
         self.gru1 = nn.GRU(hidden_size, hidden_size, n_layers)
         self.out1 = nn.Linear(hidden_size, 64)
 
-        self.embed2 = nn.Linear(self.scale*self.scale, hidden_size)
+        self.embed2 = nn.Linear(self.scale**2, hidden_size)
         self.gru2 = nn.GRU(hidden_size, hidden_size, n_layers)
         self.out2 = nn.Linear(hidden_size, self.scale*self.scale)
 
     def forward(self, x, h, focal_area):
-        # x:  B x 1 x H x W
+        # x:  B x C x H x W, C = 1
         # h: 1 x B x H
 
         # low-res predict
-        x1 = x.view(x.size(0), -1) 
+        x1 = self.mean_pool(x, 8)# compute mean behavior
+        x1 = x1.view(x1.size(0), -1) 
         x1 = self.embed1(x1)
         x1 = torch.unsqueeze(x1, 0) # T=1, TxBxD
         x1, h1 = self.gru1(x1, h)
@@ -206,9 +207,11 @@ class FocDecoderRNN(nn.Module):
         # focal_area(BxD)
         cell_list = (focal_area > 0.5).nonzero()
         # combine outputs
+        # TBD
         y = x1.view(x.size(0), -1, 1).repeat(1, 1, 64).view(x.size(0), 64, 64)
         y_h = h1
-        if len(cell_list):
+
+        if len(cell_list) and False:
             for cell in cell_list:
                 # high-res predict
                 xs = cell[0].data.cpu()[0]* self.scale
@@ -239,6 +242,25 @@ class FocDecoderRNN(nn.Module):
             return result.cuda()
         else:
             return result
+
+    def mean_pool(self, x, kernel_sz):
+        batch_sz = x.size(0)
+        width = x.size(2)
+        height = x.size(3)
+
+        n_x = int(width/kernel_sz)
+        n_y = int(height/kernel_sz)
+
+        y = Variable(torch.zeros(batch_sz, n_x, n_y))
+        for i in range(n_x):
+            for j in range(n_y):
+                y[:,i,j]  = x[:, 0, i*kernel_sz: (i+1)*kernel_sz, \
+                            j*kernel_sz: (j+1)*kernel_sz ].contiguous().view(batch_sz,-1).mean(1)
+              
+
+        return y
+
+
 
 
 class Seq2Seq(nn.Module):
@@ -300,6 +322,7 @@ class Seq2Seq(nn.Module):
                 if self.use_attn:
                     decoder_output, decoder_hidden, decoder_attention = self.decoder(
                         decoder_input, decoder_hidden, encoder_outputs)
+
                 if self.use_focus:
                     # predict focus area (center and width)
                     focal_area = self.focus(decoder_hidden.transpose(0, 1).squeeze(1))
