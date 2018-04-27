@@ -41,7 +41,7 @@ class EncoderRNN(nn.Module):
         x = self.fc1(x)
         x = torch.unsqueeze(x, 0) # T=1, TxBxD
         x, h = self.gru(x, h)
-        x = self.fc2(x)
+        x = self.fc2(x.squeeze(0))
         x = x.view(1, self.args.batch_size, self.args.x_dim, self.args.y_dim)
         return x, h
 
@@ -95,7 +95,7 @@ class DecoderRNN(nn.Module):
         x = torch.unsqueeze(x, 0) # T=1, TxBxD
         x, h = self.gru(x, h) #TxBxD
         # x = torch.squeeze(x, 0)
-        x = self.fc2(x)
+        x = self.fc2(x.squeeze(0))
         # x = x.view(x.size(0), 32, 4, 4) # channel up, kernel down with more convs
         # x = self.cnn_dec(x)
         x = x.view(1,  self.args.batch_size, self.args.x_dim, self.args.y_dim)
@@ -162,6 +162,84 @@ class AttnDecoderRNN(nn.Module):
         else:
             return result
 
+class FocDecoderRNN(nn.Module):
+    def __init__(self, hidden_size, n_layers=1, args=None):
+        super(FocDecoderRNN, self).__init__()
+        self.args = args
+
+        self.n_layers = n_layers
+        self.hidden_size = hidden_size
+        input_size = self.args.x_dim*self.args.y_dim*self.args.c_dim 
+        self.scale = 8
+
+        self.embed1 = nn.Linear(input_size, hidden_size)
+        self.gru1 = nn.GRU(hidden_size, hidden_size, n_layers)
+        self.out1 = nn.Linear(hidden_size, 64)
+
+        self.embed2 = nn.Linear(self.scale*self.scale, hidden_size)
+        self.gru2 = nn.GRU(hidden_size, hidden_size, n_layers)
+        self.out2 = nn.Linear(hidden_size, self.scale*self.scale)
+
+    def forward(self, x, h, focal_area):
+        # x:  B x 1 x H x W
+        # h: 1 x B x H
+
+        # low-res predict
+        x1 = x.view(x.size(0), -1) 
+        x1 = self.embed1(x1)
+        x1 = torch.unsqueeze(x1, 0) # T=1, TxBxD
+        x1, h1 = self.gru1(x1, h)
+        x1 = self.out1(x1.squeeze(0))
+        x1 = x1.view(self.args.batch_size, 8, 8)
+        # print('x1.shape', x1.shape)
+
+        # predict refine area: center, width 
+        # c_x, c_y, c_w = focal_area.split(1, dim=2)
+        # x_start = c_x-c_w+1
+        # x_end =  c_x+c_w-1
+        # y_start = c_y-c_y+1
+        # y_end = c_y+c_w-1
+        # x2 = x.narrow(1, x_start, x_end)
+        # x2 = x2.narrow(2, y_start,y_end)
+
+        # predict refine area: masking
+        # focal_area(BxD)
+        cell_list = (focal_area > 0.5).nonzero()
+        # combine outputs
+        y = x1.view(x.size(0), -1, 1).repeat(1, 1, 64).view(x.size(0), 64, 64)
+        y_h = h1
+        if len(cell_list):
+            for cell in cell_list:
+                # high-res predict
+                xs = cell[0].data.cpu()[0]* self.scale
+                xe = xs+ self.scale
+
+                ys = cell[1].data.cpu()[0]* self.scale 
+                ye = ys+ self.scale
+                # print('focus range:', xs, xe, '|', ys, ye)
+           
+                x2 = x[:,:,xs:xe, ys:ye].contiguous().view(x.size(0),-1)
+                x2 = self.embed2(x2)
+                x2 = torch.unsqueeze(x2, 0) # T=1, TxBxD
+                x2, h2 = self.gru2(x2, h)
+                x2 = self.out2(x2.squeeze(0))
+                x2 = x2.view(self.args.batch_size, 8, 8)
+                y[:,xs:xe,ys:ye] = y[:,xs:xe,ys:ye]+x2
+
+                y_h = torch.cat((y_h, h2))
+        
+
+        # combine hidden 
+        y = y.unsqueeze(0)  
+        return y, y_h
+
+    def initHidden(self):
+        result = Variable(torch.zeros(self.n_layers, self.args.batch_size, self.hidden_size))
+        if self.args.cuda:
+            return result.cuda()
+        else:
+            return result
+
 
 class Seq2Seq(nn.Module):
     def __init__(self, args):
@@ -169,13 +247,21 @@ class Seq2Seq(nn.Module):
 
         self.args = args
         T = torch.cuda if self.args.cuda else torch
-
+     
         self.encoder = EncoderRNN(self.args.h_dim, self.args.n_layers, args=args)
 
-        self.focus = nn.Linear(output_size, hidden_size)
+        focus_size = 3
+        self.focus = nn.Sequential(
+            nn.Linear(self.args.h_dim, focus_size),
+            nn.Sigmoid()
+        )
+
+        self.use_focus = True
         self.use_attn = False
         if self.use_attn:
             self.decoder = AttnDecoderRNN(self.args.h_dim, args=args)
+        if self.use_focus:
+            self.decoder = FocDecoderRNN(self.args.h_dim, args = args)
         else:
             self.decoder = DecoderRNN(self.args.h_dim, self.args.n_layers, args=args)
 
@@ -205,10 +291,6 @@ class Seq2Seq(nn.Module):
         # initialize decoder with encoder final state
         decoder_hidden = encoder_hidden
 
-        # predict focus area (center and width)
-        focal_area = self.focus(decoder_hidden)
-
-
         target_variable = y.permute(1,0,2,3,4)
         use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
         decoder_outputs = []
@@ -220,7 +302,7 @@ class Seq2Seq(nn.Module):
                         decoder_input, decoder_hidden, encoder_outputs)
                 if self.use_focus:
                     # predict focus area (center and width)
-                    focal_area = self.focus(decoder_hidden)
+                    focal_area = self.focus(decoder_hidden.transpose(0, 1).squeeze(1))
                     decoder_output, decoder_hidden = self.decoder(
                         decoder_input, decoder_hidden, focal_area)
                 else: 
@@ -234,6 +316,12 @@ class Seq2Seq(nn.Module):
                 if self.use_attn:
                     decoder_output, decoder_hidden, decoder_attention = self.decoder(
                         decoder_input, decoder_hidden, encoder_outputs)
+
+                if self.use_focus:
+                    # predict focus area (center and width)
+                    focal_area = self.focus(decoder_hidden.transpose(0, 1).squeeze(1))
+                    decoder_output, decoder_hidden = self.decoder(
+                        decoder_input, decoder_hidden, focal_area)
                 else: 
                     decoder_output, decoder_hidden = self.decoder(
                         decoder_input, decoder_hidden)

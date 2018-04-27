@@ -41,7 +41,7 @@ class EncoderRNN(nn.Module):
         x = self.fc1(x)
         x = torch.unsqueeze(x, 0) # T=1, TxBxD
         x, h = self.gru(x, h)
-        x = self.fc2(x)
+        x = self.fc2(x.squeeze(0))
         x = x.view(1, self.args.batch_size, self.args.x_dim, self.args.y_dim)
         return x, h
 
@@ -95,7 +95,7 @@ class DecoderRNN(nn.Module):
         x = torch.unsqueeze(x, 0) # T=1, TxBxD
         x, h = self.gru(x, h) #TxBxD
         # x = torch.squeeze(x, 0)
-        x = self.fc2(x)
+        x = self.fc2(x.squeeze(0))
         # x = x.view(x.size(0), 32, 4, 4) # channel up, kernel down with more convs
         # x = self.cnn_dec(x)
         x = x.view(1,  self.args.batch_size, self.args.x_dim, self.args.y_dim)
