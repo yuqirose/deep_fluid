@@ -52,7 +52,7 @@ parser.add_argument('--c-dim', type=int, default=1, metavar='N')
 
 parser.add_argument('--batch-size', type=int, default=5, metavar='N')
 parser.add_argument('--n-layers', type=int, default=1, metavar='N')
-parser.add_argument('--n-epochs', type=int, default=2, metavar='N',
+parser.add_argument('--n-epochs', type=int, default=5, metavar='N',
                                         help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=1e-2, metavar='LR',
                                         help='learning rate (default: 0.01)')
@@ -146,7 +146,7 @@ if __name__ == "__main__":
         
         #training + validation
         train_loss = train(train_loader, epoch, model, args, epoch_fig)
-        valid_loss = test(valid_loader, epoch, model, args)
+        valid_loss = test(valid_loader, epoch, model,args)
         
         # save train valid loss
         train_losses.append(train_loss)

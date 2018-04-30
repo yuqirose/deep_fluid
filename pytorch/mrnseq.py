@@ -7,6 +7,7 @@ from torch.nn import Parameter
 from torch.autograd import Variable
 import numpy as np
 import random
+from utils import mean_pool, mean_unpool
 
 EOS_token = 1
 
@@ -168,30 +169,30 @@ class FocDecoderRNN(nn.Module):
         self.args = args
 
         self.n_layers = n_layers
-        self.scale = 8
-        input_size = self.args.x_dim*self.args.y_dim*self.args.c_dim 
-        low_input_size = int(input_size/(self.scale**2))
+        self.kernel_sz =4
+        input_size = self.args.c_dim * self.args.x_dim*self.args.y_dim
+        low_input_size = int(input_size/(self.kernel_sz**2))
 
         self.embed1 = nn.Linear(low_input_size, hidden_size)
         self.gru1 = nn.GRU(hidden_size, hidden_size, n_layers)
-        self.out1 = nn.Linear(hidden_size, 64)
+        self.out1 = nn.Linear(hidden_size, low_input_size)
 
-        self.embed2 = nn.Linear(self.scale**2, hidden_size)
+        self.embed2 = nn.Linear(self.kernel_sz**2, hidden_size)
         self.gru2 = nn.GRU(hidden_size, hidden_size, n_layers)
-        self.out2 = nn.Linear(hidden_size, self.scale*self.scale)
+        self.out2 = nn.Linear(hidden_size, self.kernel_sz*self.kernel_sz)
 
     def forward(self, x, h, focal_area):
         # x:  B x C x H x W, C = 1
         # h: 1 x B x H
 
         # low-res predict
-        x1 = self.mean_pool(x, 8)# compute mean behavior
+        x1 = mean_pool(x, self.kernel_sz)# compute mean behavior
         x1 = x1.view(x1.size(0), -1) 
         x1 = self.embed1(x1)
         x1 = torch.unsqueeze(x1, 0) # T=1, TxBxD
         x1, h1 = self.gru1(x1, h)
         x1 = self.out1(x1.squeeze(0))
-        x1 = x1.view(self.args.batch_size, 8, 8)
+        x1 = x1.view(self.args.batch_size, self.args.c_dim, int(self.args.x_dim/self.kernel_sz), int(self.args.y_dim/self.kernel_sz))
         # print('x1.shape', x1.shape)
 
         # predict refine area: center, width 
@@ -208,17 +209,17 @@ class FocDecoderRNN(nn.Module):
         cell_list = (focal_area > 0.5).nonzero()
         # combine outputs
         # TBD
-        y = x1.view(x.size(0), -1, 1).repeat(1, 1, 64).view(x.size(0), 64, 64)
+        y = mean_unpool(x1, self.kernel_sz)
         y_h = h1
 
         if len(cell_list) and False:
             for cell in cell_list:
                 # high-res predict
-                xs = cell[0].data.cpu()[0]* self.scale
-                xe = xs+ self.scale
+                xs = cell[0].data.cpu()[0]* self.kernel_sz
+                xe = xs+ self.kernel_sz
 
-                ys = cell[1].data.cpu()[0]* self.scale 
-                ye = ys+ self.scale
+                ys = cell[1].data.cpu()[0]* self.kernel_sz 
+                ye = ys+ self.kernel_sz
                 # print('focus range:', xs, xe, '|', ys, ye)
            
                 x2 = x[:,:,xs:xe, ys:ye].contiguous().view(x.size(0),-1)
@@ -232,8 +233,8 @@ class FocDecoderRNN(nn.Module):
                 y_h = torch.cat((y_h, h2))
         
 
-        # combine hidden 
-        y = y.unsqueeze(0)  
+        # combine hidden
+        y = y.unsqueeze(0) 
         return y, y_h
 
     def initHidden(self):
@@ -242,25 +243,6 @@ class FocDecoderRNN(nn.Module):
             return result.cuda()
         else:
             return result
-
-    def mean_pool(self, x, kernel_sz):
-        batch_sz = x.size(0)
-        width = x.size(2)
-        height = x.size(3)
-
-        n_x = int(width/kernel_sz)
-        n_y = int(height/kernel_sz)
-
-        y = Variable(torch.zeros(batch_sz, n_x, n_y))
-        for i in range(n_x):
-            for j in range(n_y):
-                y[:,i,j]  = x[:, 0, i*kernel_sz: (i+1)*kernel_sz, \
-                            j*kernel_sz: (j+1)*kernel_sz ].contiguous().view(batch_sz,-1).mean(1)
-              
-
-        return y
-
-
 
 
 class Seq2Seq(nn.Module):
@@ -351,6 +333,6 @@ class Seq2Seq(nn.Module):
                 decoder_input = decoder_output
                 decoder_outputs += [decoder_output]
 
-        decoder_outputs_with_t = [torch.unsqueeze(y.permute(1,0,2,3), 1) for y in decoder_outputs]
+        decoder_outputs_with_t = [y.permute(1,0,2,3,4) for y in decoder_outputs]
         output = torch.cat(decoder_outputs_with_t, dim=1)
         return output
