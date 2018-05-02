@@ -168,6 +168,6 @@ if __name__ == "__main__":
             # print('Saved model to '+fn)
 
     # testing
-    test_loss = test(test_loader, epoch, model, args,valid=False)
+    test_loss = test(test_loader, epoch, model, args, valid=False)
     # save losses
     torch.save([train_losses, valid_losses, test_loss], args.save_dir+"/losses.pth")

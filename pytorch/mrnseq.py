@@ -190,6 +190,7 @@ class FocDecoderRNN(nn.Module):
         x1 = x1.view(x1.size(0), -1) 
         x1 = self.embed1(x1)
         x1 = torch.unsqueeze(x1, 0) # T=1, TxBxD
+
         x1, h1 = self.gru1(x1, h)
         x1 = self.out1(x1.squeeze(0))
         x1 = x1.view(self.args.batch_size, self.args.c_dim, int(self.args.x_dim/self.kernel_sz), int(self.args.y_dim/self.kernel_sz))
@@ -207,12 +208,11 @@ class FocDecoderRNN(nn.Module):
         # predict refine area: masking
         # focal_area(BxD)
         cell_list = (focal_area > 0.5).nonzero()
-        # combine outputs
-        # TBD
-        y = mean_unpool(x1, self.kernel_sz)
-        y_h = h1
+     
+        y1 = mean_unpool(x1, self.kernel_sz)
 
-        if len(cell_list) and False:
+        y2 = y1.clone()
+        if len(cell_list):
             for cell in cell_list:
                 # high-res predict
                 xs = cell[0].data.cpu()[0]* self.kernel_sz
@@ -227,15 +227,21 @@ class FocDecoderRNN(nn.Module):
                 x2 = torch.unsqueeze(x2, 0) # T=1, TxBxD
                 x2, h2 = self.gru2(x2, h)
                 x2 = self.out2(x2.squeeze(0))
-                x2 = x2.view(self.args.batch_size, 8, 8)
-                y[:,xs:xe,ys:ye] = y[:,xs:xe,ys:ye]+x2
+                x2 = x2.view(self.args.batch_size, 1, self.kernel_sz, self.kernel_sz)
+                y2[:,:, xs:xe,ys:ye] = y2[:,:, xs:xe,ys:ye]+x2
 
-                y_h = torch.cat((y_h, h2))
+                # need to change the aggregation
+                # y_h = y_h + h2 #doesn't matter for T=1
+
+                # print('h shape', y_h.shape)
         
 
-        # combine hidden
-        y = y.unsqueeze(0) 
-        return y, y_h
+        # combine outputs,combine hidden
+        y1 = y1.unsqueeze(0) 
+        y2 = y2.unsqueeze(0)
+        y_h = h1
+
+        return (y1, y2), y_h
 
     def initHidden(self):
         result = Variable(torch.zeros(self.n_layers, self.args.batch_size, self.hidden_size))
@@ -281,7 +287,7 @@ class Seq2Seq(nn.Module):
         # encoder forward pass
         encoder_hidden = self.encoder.initHidden()
         encoder_outputs = []
-        # B x T x C x H x W -> T x B x C x H x W
+        # B x T x D x H x W -> T x B x D x H x W
         encoder_inputs = x.permute(1,0,2,3,4)
         for t in range(self.args.input_len):
             # TBD: different batch size
@@ -307,7 +313,7 @@ class Seq2Seq(nn.Module):
 
                 if self.use_focus:
                     # predict focus area (center and width)
-                    focal_area = self.focus(decoder_hidden.transpose(0, 1).squeeze(1))
+                    focal_area = self.focus(decoder_hidden)
                     decoder_output, decoder_hidden = self.decoder(
                         decoder_input, decoder_hidden, focal_area)
                 else: 
@@ -324,7 +330,7 @@ class Seq2Seq(nn.Module):
 
                 if self.use_focus:
                     # predict focus area (center and width)
-                    focal_area = self.focus(decoder_hidden.transpose(0, 1).squeeze(1))
+                    focal_area = self.focus(decoder_hidden)
                     decoder_output, decoder_hidden = self.decoder(
                         decoder_input, decoder_hidden, focal_area)
                 else: 
@@ -333,6 +339,9 @@ class Seq2Seq(nn.Module):
                 decoder_input = decoder_output
                 decoder_outputs += [decoder_output]
 
-        decoder_outputs_with_t = [y.permute(1,0,2,3,4) for y in decoder_outputs]
-        output = torch.cat(decoder_outputs_with_t, dim=1)
-        return output
+        decoder_outputs_with_t = [y[0].permute(1,0,2,3,4) for y in decoder_outputs]
+        output1 = torch.cat(decoder_outputs_with_t, dim=1)
+
+        decoder_outputs_with_t = [y[1].permute(1,0,2,3,4) for y in decoder_outputs]
+        output2 = torch.cat(decoder_outputs_with_t, dim=1)
+        return output1, output2, focal_area
