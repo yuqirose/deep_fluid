@@ -172,17 +172,25 @@ class FocDecoderRNN(nn.Module):
         self.kernel_sz =4
         input_size = self.args.d_dim * self.args.x_dim*self.args.y_dim
         low_input_size = int(input_size/(self.kernel_sz**2))
-        focal_area_size = int(self.args.d_dim * self.kernel_sz**2)
 
+        # low res
         self.embed1 = nn.Linear(low_input_size, hidden_size)
         self.gru1 = nn.GRU(hidden_size, hidden_size, n_layers)
         self.out1 = nn.Linear(hidden_size, low_input_size)
 
-        self.embed2 = nn.Linear(focal_area_size, hidden_size)
-        self.gru2 = nn.GRU(hidden_size, hidden_size, n_layers)
-        self.out2 = nn.Linear(hidden_size,focal_area_size )
+        # focal area
+        focus_size = int(self.args.x_dim*self.args.y_dim/(self.kernel_sz**2))
+        self.focus = nn.Sequential(
+            nn.Linear(hidden_size, focus_size),
+            nn.Sigmoid()
+        )
 
-    def forward(self, x, h, focal_area):
+        # high res
+        self.embed2 = nn.Linear(input_size, hidden_size)
+        self.gru2 = nn.GRU(hidden_size, hidden_size, n_layers)
+        self.out2 = nn.Linear(hidden_size,input_size)
+
+    def forward(self, x, h):
         # x:  B x C x H x W, C = 1
         # h: 1 x B x H
 
@@ -207,29 +215,34 @@ class FocDecoderRNN(nn.Module):
         # x2 = x2.narrow(2, y_start,y_end)
 
         # predict refine area: masking
-        # focal_area(BxD)
-        cell_list = (focal_area > 0.5).nonzero()
-     
+        focal_area = self.focus(h)
+
+        focal_mask = (focal_area > 0.5).view((-1,1, int(self.args.x_dim/self.kernel_sz), int(self.args.y_dim/self.kernel_sz)))
+        
         y1 = mean_unpool(x1, self.kernel_sz)
-
+        focal_mask = mean_unpool(focal_mask, self.kernel_sz)
+    
         y2 = y1.clone()
-        if len(cell_list):
-            for cell in cell_list:
-                # high-res predict
-                xs = cell[0].data.cpu()[0]* self.kernel_sz
-                xe = xs+ self.kernel_sz
 
-                ys = cell[1].data.cpu()[0]* self.kernel_sz 
-                ye = ys+ self.kernel_sz
-                # print('focus range:', xs, xe, '|', ys, ye)
-           
-                x2 = x[:,:,xs:xe, ys:ye].contiguous().view(x.size(0),-1)
-                x2 = self.embed2(x2)
-                x2 = torch.unsqueeze(x2, 0) # T=1, TxBxD
-                x2, h2 = self.gru2(x2, h)
-                x2 = self.out2(x2.squeeze(0))
-                x2 = x2.view(self.args.batch_size, self.args.d_dim, self.kernel_sz, self.kernel_sz)
-                y2[:,:, xs:xe,ys:ye] = y2[:,:, xs:xe,ys:ye]+x2
+        # if len(cell_list):
+        #     for cell in cell_list:
+        #         # high-res predict
+        #         xs = cell[0].data.cpu()[0]* self.kernel_sz
+        #         xe = xs+ self.kernel_sz
+
+        #         ys = cell[1].data.cpu()[0]* self.kernel_sz 
+        #         ye = ys+ self.kernel_sz
+        #         # print('focus range:', xs, xe, '|', ys, ye)
+        #         x2 = x[:,:,xs:xe, ys:ye].contiguous().view(x.size(0),-1)
+        x2 = x.view(x.size(0), -1) 
+        x2 = self.embed2(x2)
+        x2 = torch.unsqueeze(x2, 0) # T=1, TxBxD
+        x2, h2 = self.gru2(x2, h)
+        x2 = self.out2(x2.squeeze(0))
+        x2 = x2.view(self.args.batch_size, self.args.d_dim, self.args.x_dim, self.args.y_dim)
+        y2 = y2 + x2.masked_scatter_(focal_mask, x2)
+
+                # y2[:,:, xs:xe,ys:ye] = y2[:,:, xs:xe,ys:ye]+x2
 
                 # need to change the aggregation
                 # y_h = y_h + h2 #doesn't matter for T=1
@@ -242,7 +255,7 @@ class FocDecoderRNN(nn.Module):
         y2 = y2.unsqueeze(0)
         y_h = h1
 
-        return (y1, y2), y_h
+        return (y1, y2, focal_mask), y_h
 
     def initHidden(self):
         result = Variable(torch.zeros(self.n_layers, self.args.batch_size, self.hidden_size))
@@ -260,13 +273,7 @@ class Seq2Seq(nn.Module):
         T = torch.cuda if self.args.cuda else torch
      
         self.encoder = EncoderRNN(self.args.h_dim, self.args.n_layers, args=args)
-
-        focus_size = 3
-        self.focus = nn.Sequential(
-            nn.Linear(self.args.h_dim, focus_size),
-            nn.Sigmoid()
-        )
-
+   
         self.use_focus = True
         self.use_attn = False
         if self.use_attn:
@@ -312,11 +319,6 @@ class Seq2Seq(nn.Module):
                     decoder_output, decoder_hidden, decoder_attention = self.decoder(
                         decoder_input, decoder_hidden, encoder_outputs)
 
-                if self.use_focus:
-                    # predict focus area (center and width)
-                    focal_area = self.focus(decoder_hidden)
-                    decoder_output, decoder_hidden = self.decoder(
-                        decoder_input, decoder_hidden, focal_area)
                 else: 
                     decoder_output, decoder_hidden = self.decoder(
                         decoder_input, decoder_hidden)
@@ -329,11 +331,6 @@ class Seq2Seq(nn.Module):
                     decoder_output, decoder_hidden, decoder_attention = self.decoder(
                         decoder_input, decoder_hidden, encoder_outputs)
 
-                if self.use_focus:
-                    # predict focus area (center and width)
-                    focal_area = self.focus(decoder_hidden)
-                    decoder_output, decoder_hidden = self.decoder(
-                        decoder_input, decoder_hidden, focal_area)
                 else: 
                     decoder_output, decoder_hidden = self.decoder(
                         decoder_input, decoder_hidden)
@@ -345,4 +342,7 @@ class Seq2Seq(nn.Module):
 
         decoder_outputs_with_t = [y[1].permute(1,0,2,3,4) for y in decoder_outputs]
         output2 = torch.cat(decoder_outputs_with_t, dim=1)
-        return output1, output2, focal_area
+
+        decoder_outputs_with_t = [y[2].permute(1,0,2,3) for y in decoder_outputs]
+        focal_areas = torch.cat(decoder_outputs_with_t, dim=1)
+        return output1, output2, focal_areas

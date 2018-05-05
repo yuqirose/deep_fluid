@@ -53,8 +53,8 @@ def mean_unpool(x, kernel_sz):
     n_x = int(width * kernel_sz)
     n_y = int(height * kernel_sz)
 
-    ones = Variable(torch.ones(kernel_sz, kernel_sz))
-    res = Variable(torch.zeros(batch_sz, channel, n_x, n_y))
+    ones = Variable(torch.ones(kernel_sz, kernel_sz).type(x.data.type()))
+    res = Variable(torch.zeros(batch_sz, channel, n_x, n_y).type(x.data.type()))
     for b in range(batch_sz):
         for c in range(channel):
             res[b,c] = kronecker_product(x[b,c], ones)  
