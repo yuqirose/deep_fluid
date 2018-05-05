@@ -10,7 +10,7 @@ import uniio
 
 
 def read_uni_file(data_dir, sim_idx, step_idx):
-    filename = "%s/sim_%04d/pressure_low_%04d.uni" 
+    filename = "%s/sim_%04d/"+var_name+"_low_%04d.uni" 
     uniPath = filename % (data_dir, sim_idx, step_idx)  # 100 files per sim
     header, content = uniio.readUni(uniPath)
     h = header['dimX']
@@ -20,8 +20,11 @@ def read_uni_file(data_dir, sim_idx, step_idx):
     arr = np.reshape(arr, [1, w, h])
     return arr
 
-def read_npz_file(data_dir, sim_idx, step_idx):
-    filename = "%s/sim_%04d/pressure_low_%04d.npz" 
+def read_npz_file(data_dir, sim_idx, step_idx, var_name):
+    """
+    var_name: string pressure/velocity
+    """
+    filename = "%s/sim_%04d/"+var_name+"_low_%04d.npz" 
     npz_path = filename % (data_dir, sim_idx, step_idx)
     data = np.load(npz_path)
     arr = data['arr_0']
@@ -135,7 +138,7 @@ class SmokeDataset(Dataset):
         Returns:
             TYPE: Description
         """
-        states = np.empty([0, self.args.c_dim, self.args.x_dim,self.args.y_dim])
+        states = np.empty([0, self.args.d_dim, self.args.x_dim,self.args.y_dim])
 
         sim_idx = idx / (self.args.sim_len-self.T)
         sim_idx += 1000 #start from 1000
@@ -143,13 +146,14 @@ class SmokeDataset(Dataset):
 
 
         for t in range(self.T):
-            arr = read_npz_file(self.data_dir, sim_idx, step_idx+t)
-            states = np.append( states, np.expand_dims(arr,0), 0 )
+            arr_p = read_npz_file(self.data_dir, sim_idx, step_idx+t,'pressure')
+            arr_v = read_npz_file(self.data_dir, sim_idx, step_idx+t,'velocity')
+            states = np.append(states, np.expand_dims(np.concatenate((arr_p, arr_v)),0), 0)
 
         data = states[:self.args.input_len,]
         label = states[self.args.input_len:,]
 
-        # seq_len x channel x height x width 
+        # seq_len x depth x height x width 
         data = torch.from_numpy(data).type(torch.FloatTensor)
         label = torch.from_numpy(label).type(torch.FloatTensor)
         # print("data shape ", data.shape,"label shape",label.shape)

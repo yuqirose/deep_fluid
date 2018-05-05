@@ -95,26 +95,31 @@ def train(train_loader, epoch, model, args, epoch_fig):
         #     )
         # )
         if target.data.dim()==5:
-            target = torch.squeeze(target,0)
-            output1 = torch.squeeze(output1,0)
-            output2 = torch.squeeze(output2,0)
+            target = torch.squeeze(target)
+            output1 = torch.squeeze(output1)
+            output2 = torch.squeeze(output2)
+
+        target_img = target.data[0][0] #first dimension pressure
+        output1_img = output1.data[0][0]
+        output2_img = output2.data[0][0]
+        # print('target shape', target_img.shape, 'pred shape',output1_img.shape, 'focal shape', output2_img.shape)
 
 
-        viz.images(target.data[0].cpu(),
+        viz.images(target_img.cpu(),
             opts=dict(
             caption='true', 
             jpgquality=20       
             )
         )
 
-        viz.images(output1.data[0].cpu(),
+        viz.images(output1_img.cpu(),
             opts=dict(
             caption='pred-base', 
             jpgquality=20       
             )
         )
 
-        viz.images(output2.data[0].cpu(),
+        viz.images(output2_img.cpu(),
             opts=dict(
             caption='pred-mrn', 
             jpgquality=20       

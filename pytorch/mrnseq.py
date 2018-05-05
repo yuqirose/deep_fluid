@@ -17,11 +17,11 @@ class EncoderRNN(nn.Module):
         self.args = args
         self.n_layers = n_layers
         self.hidden_size = hidden_size
-        c_dim = self.args.c_dim
+        d_dim = self.args.d_dim
         conv_dim = 4
 
         self.cnn =  nn.Sequential(
-            nn.Conv2d(c_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
+            nn.Conv2d(d_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
             nn.BatchNorm2d(conv_dim),
             nn.Conv2d(conv_dim, conv_dim*2, 4, 2, 1),
             nn.BatchNorm2d(conv_dim*2),
@@ -31,7 +31,7 @@ class EncoderRNN(nn.Module):
         )
 
         # input_size = int(self.args.x_dim * self.args.y_dim/(2**3) ) #tbd:calculate
-        input_size = self.args.x_dim*self.args.y_dim*self.args.c_dim 
+        input_size = self.args.x_dim*self.args.y_dim*self.args.d_dim 
         self.fc1 = nn.Linear(input_size, self.hidden_size)
         self.gru = nn.GRU(self.hidden_size, self.hidden_size, self.n_layers)
         self.fc2 = nn.Linear(self.hidden_size, input_size)
@@ -43,7 +43,7 @@ class EncoderRNN(nn.Module):
         x = torch.unsqueeze(x, 0) # T=1, TxBxD
         x, h = self.gru(x, h)
         x = self.fc2(x.squeeze(0))
-        x = x.view(1, self.args.batch_size, self.args.x_dim, self.args.y_dim)
+        x = x.view(1, self.args.batch_size, self.args.d_dim, self.args.x_dim, self.args.y_dim)
         return x, h
 
     def initHidden(self):
@@ -61,13 +61,13 @@ class DecoderRNN(nn.Module):
         self.n_layers = n_layers
         self.hidden_size = hidden_size
         conv_dim = 4
-        c_dim = self.args.c_dim
+        d_dim = self.args.d_dim
 
         # input_size = int(self.args.x_dim * self.args.y_dim/(2**3))
-        input_size = self.args.x_dim*self.args.y_dim*self.args.c_dim 
+        input_size = self.args.x_dim*self.args.y_dim*self.args.d_dim 
 
         self.cnn_enc =  nn.Sequential(
-            nn.Conv2d(c_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
+            nn.Conv2d(d_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
             nn.BatchNorm2d(conv_dim),
             nn.Conv2d(conv_dim, conv_dim*2, 4, 2, 1),
             nn.BatchNorm2d(conv_dim*2),
@@ -86,7 +86,7 @@ class DecoderRNN(nn.Module):
             nn.BatchNorm2d(conv_dim*2),
             nn.ConvTranspose2d(conv_dim*2, conv_dim, 4,2,1),
             nn.BatchNorm2d(conv_dim),
-            nn.ConvTranspose2d(conv_dim,c_dim, 4,2,1)
+            nn.ConvTranspose2d(conv_dim,d_dim, 4,2,1)
         )
 
     def forward(self, x, h):
@@ -170,16 +170,17 @@ class FocDecoderRNN(nn.Module):
 
         self.n_layers = n_layers
         self.kernel_sz =4
-        input_size = self.args.c_dim * self.args.x_dim*self.args.y_dim
+        input_size = self.args.d_dim * self.args.x_dim*self.args.y_dim
         low_input_size = int(input_size/(self.kernel_sz**2))
+        focal_area_size = int(self.args.d_dim * self.kernel_sz**2)
 
         self.embed1 = nn.Linear(low_input_size, hidden_size)
         self.gru1 = nn.GRU(hidden_size, hidden_size, n_layers)
         self.out1 = nn.Linear(hidden_size, low_input_size)
 
-        self.embed2 = nn.Linear(self.kernel_sz**2, hidden_size)
+        self.embed2 = nn.Linear(focal_area_size, hidden_size)
         self.gru2 = nn.GRU(hidden_size, hidden_size, n_layers)
-        self.out2 = nn.Linear(hidden_size, self.kernel_sz*self.kernel_sz)
+        self.out2 = nn.Linear(hidden_size,focal_area_size )
 
     def forward(self, x, h, focal_area):
         # x:  B x C x H x W, C = 1
@@ -193,7 +194,7 @@ class FocDecoderRNN(nn.Module):
 
         x1, h1 = self.gru1(x1, h)
         x1 = self.out1(x1.squeeze(0))
-        x1 = x1.view(self.args.batch_size, self.args.c_dim, int(self.args.x_dim/self.kernel_sz), int(self.args.y_dim/self.kernel_sz))
+        x1 = x1.view(self.args.batch_size, self.args.d_dim, int(self.args.x_dim/self.kernel_sz), int(self.args.y_dim/self.kernel_sz))
         # print('x1.shape', x1.shape)
 
         # predict refine area: center, width 
@@ -227,7 +228,7 @@ class FocDecoderRNN(nn.Module):
                 x2 = torch.unsqueeze(x2, 0) # T=1, TxBxD
                 x2, h2 = self.gru2(x2, h)
                 x2 = self.out2(x2.squeeze(0))
-                x2 = x2.view(self.args.batch_size, 1, self.kernel_sz, self.kernel_sz)
+                x2 = x2.view(self.args.batch_size, self.args.d_dim, self.kernel_sz, self.kernel_sz)
                 y2[:,:, xs:xe,ys:ye] = y2[:,:, xs:xe,ys:ye]+x2
 
                 # need to change the aggregation
@@ -237,7 +238,7 @@ class FocDecoderRNN(nn.Module):
         
 
         # combine outputs,combine hidden
-        y1 = y1.unsqueeze(0) 
+        y1 = y1.unsqueeze(0)
         y2 = y2.unsqueeze(0)
         y_h = h1
 
@@ -296,7 +297,7 @@ class Seq2Seq(nn.Module):
         encoder_outputs = torch.cat(encoder_outputs, 0)
 
         # decoder forward pass
-        decoder_input = Variable(torch.zeros(x.size(0), self.args.c_dim, self.args.x_dim, self.args.y_dim))
+        decoder_input = Variable(torch.zeros(x.size(0), self.args.d_dim, self.args.x_dim, self.args.y_dim))
         decoder_input = decoder_input.cuda() if self.args.cuda else decoder_input
         # initialize decoder with encoder final state
         decoder_hidden = encoder_hidden
