@@ -12,10 +12,10 @@ from utils import mean_pool, mean_unpool
 EOS_token = 1
 
 class EncoderRNN(nn.Module):
-    def __init__(self, hidden_size, n_layers=1, args=None):
+    def __init__(self, hidden_size, args=None):
         super(EncoderRNN, self).__init__()
         self.args = args
-        self.n_layers = n_layers
+        self.n_layers = args.n_layers
         self.hidden_size = hidden_size
         d_dim = self.args.d_dim
         conv_dim = 4
@@ -54,11 +54,11 @@ class EncoderRNN(nn.Module):
             return h
 
 class DecoderRNN(nn.Module):
-    def __init__(self, hidden_size, n_layers=1, args=None):
+    def __init__(self, hidden_size, args=None):
         super(DecoderRNN, self).__init__()
         self.args = args
 
-        self.n_layers = n_layers
+        self.n_layers = args.n_layers
         self.hidden_size = hidden_size
         conv_dim = 4
         d_dim = self.args.d_dim
@@ -112,11 +112,11 @@ class DecoderRNN(nn.Module):
 
 
 class AttnDecoderRNN(nn.Module):
-    def __init__(self, hidden_size, n_layers=1, args=None):
+    def __init__(self, hidden_size, args=None):
         super(AttnDecoderRNN, self).__init__()
         self.args = args
 
-        self.n_layers = n_layers
+        self.n_layers = args.n_layers
         self.hidden_size = hidden_size
 
         self.embedding = nn.Linear(output_size, hidden_size)
@@ -164,42 +164,40 @@ class AttnDecoderRNN(nn.Module):
             return result
 
 class FocDecoderRNN(nn.Module):
-    def __init__(self, hidden_size, n_layers=1, args=None):
+    def __init__(self, hidden_size, args=None):
         super(FocDecoderRNN, self).__init__()
         self.args = args
 
-        self.n_layers = n_layers
+        self.n_layers = args.n_layers
         self.kernel_sz =4
         input_size = self.args.d_dim * self.args.x_dim*self.args.y_dim
         low_input_size = int(input_size/(self.kernel_sz**2))
 
         # low res
         self.embed1 = nn.Linear(low_input_size, hidden_size)
-        self.gru1 = nn.GRU(hidden_size, hidden_size, n_layers)
+        self.gru1 = nn.GRU(hidden_size, hidden_size, self.n_layers)
         self.out1 = nn.Linear(hidden_size, low_input_size)
 
         # focal area
         focus_size = int(self.args.x_dim*self.args.y_dim/(self.kernel_sz**2))
         self.focus = nn.Sequential(
-            nn.Linear(hidden_size, focus_size),
+            nn.Linear(self.args.n_layers*hidden_size, focus_size),
             nn.Sigmoid()
         )
 
         # high res
         self.embed2 = nn.Linear(input_size, hidden_size)
-        self.gru2 = nn.GRU(hidden_size, hidden_size, n_layers)
+        self.gru2 = nn.GRU(hidden_size, hidden_size, self.n_layers)
         self.out2 = nn.Linear(hidden_size,input_size)
 
     def forward(self, x, h):
         # x:  B x C x H x W, C = 1
         # h: 1 x B x H
-
         # low-res predict
-        x1 = mean_pool(x, self.kernel_sz)# compute mean behavior
+        x1 = mean_pool(x, self.kernel_sz, cuda=self.args.cuda)# compute mean behavior
         x1 = x1.view(x1.size(0), -1) 
-        x1 = self.embed1(x1)
+	x1 = self.embed1(x1)
         x1 = torch.unsqueeze(x1, 0) # T=1, TxBxD
-
         x1, h1 = self.gru1(x1, h)
         x1 = self.out1(x1.squeeze(0))
         x1 = x1.view(self.args.batch_size, self.args.d_dim, int(self.args.x_dim/self.kernel_sz), int(self.args.y_dim/self.kernel_sz))
@@ -215,7 +213,8 @@ class FocDecoderRNN(nn.Module):
         # x2 = x2.narrow(2, y_start,y_end)
 
         # predict refine area: masking
-        focal_area = self.focus(h)
+        context = h.view(self.args.batch_size,-1)
+        focal_area = self.focus(context)
 
         focal_mask = (focal_area > 0.5).view((-1,1, int(self.args.x_dim/self.kernel_sz), int(self.args.y_dim/self.kernel_sz)))
         
@@ -272,7 +271,7 @@ class Seq2Seq(nn.Module):
         self.args = args
         T = torch.cuda if self.args.cuda else torch
      
-        self.encoder = EncoderRNN(self.args.h_dim, self.args.n_layers, args=args)
+        self.encoder = EncoderRNN(self.args.h_dim, args=args)
    
         self.use_focus = True
         self.use_attn = False
@@ -281,7 +280,8 @@ class Seq2Seq(nn.Module):
         if self.use_focus:
             self.decoder = FocDecoderRNN(self.args.h_dim, args = args)
         else:
-            self.decoder = DecoderRNN(self.args.h_dim, self.args.n_layers, args=args)
+            self.decoder = DecoderRNN(self.args.h_dim,  args=args)
+	if self.args.cuda: self.decoder = self.decoder.cuda()
 
         self.teacher_forcing_ratio = 0.5
 
@@ -319,7 +319,7 @@ class Seq2Seq(nn.Module):
                     decoder_output, decoder_hidden, decoder_attention = self.decoder(
                         decoder_input, decoder_hidden, encoder_outputs)
 
-                else: 
+                else:
                     decoder_output, decoder_hidden = self.decoder(
                         decoder_input, decoder_hidden)
                 decoder_input = target_variable[di]  # Teacher forcing
@@ -331,7 +331,7 @@ class Seq2Seq(nn.Module):
                     decoder_output, decoder_hidden, decoder_attention = self.decoder(
                         decoder_input, decoder_hidden, encoder_outputs)
 
-                else: 
+                else:
                     decoder_output, decoder_hidden = self.decoder(
                         decoder_input, decoder_hidden)
                 decoder_input = decoder_output

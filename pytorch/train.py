@@ -101,6 +101,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
 
         target_img = target.data[0][0] #first dimension pressure
         output1_img = output1.data[0][0]
+        mask_img = focal_area.data[0][0]
         output2_img = output2.data[0][0]
         # print('target shape', target_img.shape, 'pred shape',output1_img.shape, 'focal shape', output2_img.shape)
 
@@ -119,15 +120,20 @@ def train(train_loader, epoch, model, args, epoch_fig):
             )
         )
 
+        viz.images(mask_img.cpu(),
+            opts=dict(
+            caption='mask', 
+            jpgquality=20       
+            )
+        )
+
         viz.images(output2_img.cpu(),
             opts=dict(
             caption='pred-mrn', 
             jpgquality=20       
             )
         )
-       
-
-        
+               
 
     return train_loss
 
@@ -162,28 +168,51 @@ def test(test_loader, epoch, model, args, valid=True):
             fname = fname%(sim_idx,step_idx)
             save_fname = "/true_"+fname
             np.savez(args.save_dir+save_fname, data.data.cpu().numpy())
-            save_fname = "/pred_"+fname
-            np.savez(args.save_dir+save_fname, output.data.cpu().numpy())
+            save_fname = "/pred_low_"+fname
+            np.savez(args.save_dir+save_fname, output1.data.cpu().numpy())
+            save_fname = "/pred_high_"+fname
+            np.savez(args.save_dir+save_fname, output2.data.cpu().numpy())
+            save_fname = "/mask_"+fname
+            np.savez(args.save_dir+save_fname, focal_area.data.cpu().numpy())
             print('Saved prediction to '+args.save_dir+save_fname)
 
-            if PLOT_ON == True and False:
+            if PLOT_ON == True:
                 if target.data.dim()==5:
                     target = torch.squeeze(target,0)
                     output = torch.squeeze(output,0)
+                target_img = target.data[0][0] #first dimension pressure
+                output1_img = output1.data[0][0]
+                mask_img = focal_area.data[0][0]
+                output2_img = output2.data[0][0]
 
-                viz.images(target.data.cpu(),
+                viz.images(target_img.cpu(),
                     opts=dict(
                     caption='true'+fname, 
                     jpgquality=20       
                     )
-                )
+                 )
 
-                viz.images(output.data.cpu(),
+                viz.images(output1_img.cpu(),
                     opts=dict(
-                    caption='pred'+fname, 
+                    caption='pred-base'+fname, 
                     jpgquality=20       
                     )
                 )
+
+                viz.images(mask_img.cpu(),
+                   opts=dict(
+                   caption='mask', 
+                   jpgquality=20       
+                   )
+                )    
+
+                viz.images(output2_img.cpu(),
+                    opts=dict(
+                    caption='pred-mrn', 
+                    jpgquality=20       
+                    )
+                )   
+       
 
     test_loss /= len(test_loader.dataset)
 

@@ -7,7 +7,7 @@ viz = visdom.Visdom()
 
 from reader import read_npz_file
 
-def mean_pool(x, kernel_sz):
+def mean_pool(x, kernel_sz, cuda=False):
     batch_sz = x.size(0)
     channel = x.size(1)
     width = x.size(2)
@@ -17,6 +17,8 @@ def mean_pool(x, kernel_sz):
     n_y = int(height/kernel_sz)
 
     y = Variable(torch.zeros(batch_sz, channel, n_x, n_y))
+    if cuda:
+	y = y.cuda()
     for c in range(channel):
         for i in range(n_x):
             for j in range(n_y):
