@@ -178,8 +178,9 @@ def test(test_loader, epoch, model, args, valid=True):
 
             if PLOT_ON == True:
                 if target.data.dim()==5:
-                    target = torch.squeeze(target,0)
-                    output = torch.squeeze(output,0)
+                    target = torch.squeeze(target)
+                    output1 = torch.squeeze(output1)
+                    output2 = torch.squeeze(output2)
                 target_img = target.data[0][0] #first dimension pressure
                 output1_img = output1.data[0][0]
                 mask_img = focal_area.data[0][0]
