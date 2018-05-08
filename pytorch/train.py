@@ -173,17 +173,18 @@ def test(test_loader, epoch, model, args, valid=True):
             save_fname = "/pred_high_"+fname
             np.savez(args.save_dir+save_fname, output2.data.cpu().numpy())
             save_fname = "/mask_"+fname
-            np.savez(args.save_dir+save_fname, focal_area.data.cpu().numpy())
+            np.savez(args.save_dir+save_fname, focal_area.data.type(torch.FloatTensor).cpu().numpy())
+                
             print('Saved prediction to '+args.save_dir+save_fname)
 
-            if PLOT_ON == True:
+            if PLOT_ON == True and step_idx%50==1:
                 if target.data.dim()==5:
-                    target = torch.squeeze(target)
-                    output1 = torch.squeeze(output1)
-                    output2 = torch.squeeze(output2)
+                    target = torch.squeeze(target,1)
+                    output1 = torch.squeeze(output1,1)
+                    output2 = torch.squeeze(output2,1)
                 target_img = target.data[0][0] #first dimension pressure
                 output1_img = output1.data[0][0]
-                mask_img = focal_area.data[0][0]
+                mask_img = focal_area.data[0][0].type(torch.FloatTensor)
                 output2_img = output2.data[0][0]
 
                 viz.images(target_img.cpu(),
