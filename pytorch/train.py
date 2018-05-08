@@ -45,13 +45,18 @@ def train(train_loader, epoch, model, args, epoch_fig):
         #forward + backward + optimize
         optimizer.zero_grad()
         # batch x channel x height x width
-        output1, output2, focal_area= model(data,target)
+        try:
+            output1, output2, focal_area= model(data,target)
+            output = output2
+
+        except ValueError:
+            output  = model(data, target)
+
         # output
         # print("output shape ", output.shape)
         # print("target shape ", target.shape)
         # print('target', target.data[0][:10])
         # print('output', output.data[0][:10])
-        output = output2
         loss = F.mse_loss(output, target)
 
 
@@ -79,7 +84,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
     train_loss/= len(train_loader.dataset)
     print('====> Epoch: {} Average loss: {:.4f}'.format(epoch, train_loss ))
 
-    if PLOT_ON == True:
+    if PLOT_ON == False:
         # get model weights
         # for m in model.modules():
         #     if isinstance(m, nn.Conv2d):
@@ -150,12 +155,16 @@ def test(test_loader, epoch, model, args, valid=True):
         # target = torch.transpose(target, 0, 1)
 
         # inference
-        output1, output2, focal_area = model(data, target)
+        try:
+            output1, output2, focal_area = model(data, target)
+            output = output2
+        except ValueError:
+            output = model(data, target)
+
 
         # output
         # print('target', target.data[0][:10])
         # print('output', output.data[0][:10])
-        output = output2
         loss = F.mse_loss(output, target)
 
         test_loss += loss.data[0]
@@ -177,7 +186,7 @@ def test(test_loader, epoch, model, args, valid=True):
                 
             print('Saved prediction to '+args.save_dir+save_fname)
 
-            if PLOT_ON == True and step_idx%50==1:
+            if PLOT_ON == False and step_idx%50==1:
                 if target.data.dim()==5:
                     target = torch.squeeze(target,1)
                     output1 = torch.squeeze(output1,1)
