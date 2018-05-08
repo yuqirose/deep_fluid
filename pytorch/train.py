@@ -101,7 +101,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
 
         target_img = target.data[0][0] #first dimension pressure
         output1_img = output1.data[0][0]
-        mask_img = focal_area.data[0][0]
+        mask_img = focal_area.data[0][0].type(torch.FloatTensor)
         output2_img = output2.data[0][0]
         # print('target shape', target_img.shape, 'pred shape',output1_img.shape, 'focal shape', output2_img.shape)
 

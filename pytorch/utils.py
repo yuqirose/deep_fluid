@@ -17,8 +17,7 @@ def mean_pool(x, kernel_sz, cuda=False):
     n_y = int(height/kernel_sz)
 
     y = Variable(torch.zeros(batch_sz, channel, n_x, n_y))
-    if cuda:
-	y = y.cuda()
+    if cuda: y = y.cuda()
     for c in range(channel):
         for i in range(n_x):
             for j in range(n_y):

@@ -48,7 +48,7 @@ parser.add_argument('--sim-len', type=int, default=50, metavar='N')
 parser.add_argument('--x-dim', type=int, default=64, metavar='N')
 parser.add_argument('--y-dim', type=int, default=64, metavar='N')
 parser.add_argument('--d-dim', type=int, default=4, metavar='N')
-parser.add_argument('--h-dim', type=int, default=1024, metavar='N')
+parser.add_argument('--h-dim', type=int, default=128, metavar='N')
 
 parser.add_argument('--batch-size', type=int, default=5, metavar='N')
 parser.add_argument('--n-layers', type=int, default=1, metavar='N')

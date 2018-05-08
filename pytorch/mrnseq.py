@@ -169,7 +169,7 @@ class FocDecoderRNN(nn.Module):
         self.args = args
 
         self.n_layers = args.n_layers
-        self.kernel_sz =4
+        self.kernel_sz =8
         input_size = self.args.d_dim * self.args.x_dim*self.args.y_dim
         low_input_size = int(input_size/(self.kernel_sz**2))
 
@@ -196,7 +196,7 @@ class FocDecoderRNN(nn.Module):
         # low-res predict
         x1 = mean_pool(x, self.kernel_sz, cuda=self.args.cuda)# compute mean behavior
         x1 = x1.view(x1.size(0), -1) 
-	x1 = self.embed1(x1)
+        x1 = self.embed1(x1)
         x1 = torch.unsqueeze(x1, 0) # T=1, TxBxD
         x1, h1 = self.gru1(x1, h)
         x1 = self.out1(x1.squeeze(0))
@@ -253,7 +253,6 @@ class FocDecoderRNN(nn.Module):
         y1 = y1.unsqueeze(0)
         y2 = y2.unsqueeze(0)
         y_h = h1
-
         return (y1, y2, focal_mask), y_h
 
     def initHidden(self):
@@ -281,7 +280,7 @@ class Seq2Seq(nn.Module):
             self.decoder = FocDecoderRNN(self.args.h_dim, args = args)
         else:
             self.decoder = DecoderRNN(self.args.h_dim,  args=args)
-	if self.args.cuda: self.decoder = self.decoder.cuda()
+        if self.args.cuda: self.decoder = self.decoder.cuda()
 
         self.teacher_forcing_ratio = 0.5
 
