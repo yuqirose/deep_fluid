@@ -45,11 +45,10 @@ def train(train_loader, epoch, model, args, epoch_fig):
         #forward + backward + optimize
         optimizer.zero_grad()
         # batch x channel x height x width
-        try:
-            output1, output2, focal_area= model(data,target)
-            output = output2
+        if args.use_focus:
+            output, output1, focal_area= model(data,target)
 
-        except ValueError:
+        else:
             output  = model(data, target)
 
         # output
@@ -57,7 +56,11 @@ def train(train_loader, epoch, model, args, epoch_fig):
         # print("target shape ", target.shape)
         # print('target', target.data[0][:10])
         # print('output', output.data[0][:10])
-        loss = F.mse_loss(output, target)
+        if args.use_focus:
+            # mask_target = target.masked_scatter_(focal_area, target)
+            loss = F.mse_loss(output, target)
+        else:
+            loss = F.mse_loss(output, target)
 
 
         loss.backward()
@@ -84,7 +87,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
     train_loss/= len(train_loader.dataset)
     print('====> Epoch: {} Average loss: {:.4f}'.format(epoch, train_loss ))
 
-    if PLOT_ON == False:
+    if PLOT_ON == True:
         # get model weights
         # for m in model.modules():
         #     if isinstance(m, nn.Conv2d):
@@ -101,43 +104,52 @@ def train(train_loader, epoch, model, args, epoch_fig):
         # )
         if target.data.dim()==5:
             target = torch.squeeze(target)
-            output1 = torch.squeeze(output1)
-            output2 = torch.squeeze(output2)
+            output = torch.squeeze(output)
+            if args.use_focus:
+                output1 = torch.squeeze(output1)
 
         target_img = target.data[0][0] #first dimension pressure
-        output1_img = output1.data[0][0]
-        mask_img = focal_area.data[0][0].type(torch.FloatTensor)
-        output2_img = output2.data[0][0]
+        output_img = output.data[0][0]
+
+
+        viz.heatmap(target_img.cpu(), opts=dict(colormap='Greys'))
+        viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys'))
+        # viz.images(target_img.cpu(),
+        #     opts=dict(
+        #     caption='true', 
+        #     jpgquality=20       
+        #     )
+        # )
+     
+        # viz.images(output_img.cpu(),
+        #     opts=dict(
+        #     caption='pred', 
+        #     jpgquality=20       
+        #     )
+        # )
+
+        if args.use_focus:
+            output1_img = output1.data[0][0]
+            mask_img = focal_area.data[0][0].type(torch.FloatTensor)
+       
         # print('target shape', target_img.shape, 'pred shape',output1_img.shape, 'focal shape', output2_img.shape)
+            viz.heatmap(output1_img.cpu(), opts=dict(colormap='Greys'))
+            viz.heatmap(mask_img.cpu(), opts=dict(colormap='Greys'))
+
+            # viz.images(output1_img.cpu(),
+            #     opts=dict(
+            #     caption='pred-base', 
+            #     jpgquality=20       
+            #     )
+            # )
+            # viz.images(mask_img.cpu(),
+            #     opts=dict(
+            #     caption='mask', 
+            #     jpgquality=20       
+            #     )
+            # )
 
 
-        viz.images(target_img.cpu(),
-            opts=dict(
-            caption='true', 
-            jpgquality=20       
-            )
-        )
-
-        viz.images(output1_img.cpu(),
-            opts=dict(
-            caption='pred-base', 
-            jpgquality=20       
-            )
-        )
-
-        viz.images(mask_img.cpu(),
-            opts=dict(
-            caption='mask', 
-            jpgquality=20       
-            )
-        )
-
-        viz.images(output2_img.cpu(),
-            opts=dict(
-            caption='pred-mrn', 
-            jpgquality=20       
-            )
-        )
                
 
     return train_loss
@@ -155,10 +167,9 @@ def test(test_loader, epoch, model, args, valid=True):
         # target = torch.transpose(target, 0, 1)
 
         # inference
-        try:
-            output1, output2, focal_area = model(data, target)
-            output = output2
-        except ValueError:
+        if args.use_focus:
+            output, output1, focal_area = model(data, target)
+        else :
             output = model(data, target)
 
 
@@ -178,52 +189,58 @@ def test(test_loader, epoch, model, args, valid=True):
             save_fname = "/true_"+fname
             np.savez(args.save_dir+save_fname, data.data.cpu().numpy())
             save_fname = "/pred_low_"+fname
-            np.savez(args.save_dir+save_fname, output1.data.cpu().numpy())
+            np.savez(args.save_dir+save_fname, output.data.cpu().numpy())
             save_fname = "/pred_high_"+fname
-            np.savez(args.save_dir+save_fname, output2.data.cpu().numpy())
-            save_fname = "/mask_"+fname
-            np.savez(args.save_dir+save_fname, focal_area.data.type(torch.FloatTensor).cpu().numpy())
-                
+
+            if args.use_focus:
+                np.savez(args.save_dir+save_fname, output1.data.cpu().numpy())
+                save_fname = "/mask_"+fname
+                np.savez(args.save_dir+save_fname, focal_area.data.type(torch.FloatTensor).cpu().numpy())
+                    
             print('Saved prediction to '+args.save_dir+save_fname)
 
-            if PLOT_ON == False and step_idx%50==1:
+            if PLOT_ON == True and step_idx%50==1:
                 if target.data.dim()==5:
                     target = torch.squeeze(target,1)
-                    output1 = torch.squeeze(output1,1)
-                    output2 = torch.squeeze(output2,1)
+                    output = torch.squeeze(output,1)
+                    if args.use_focus:
+                        output1 = torch.squeeze(output1,1)
+                
                 target_img = target.data[0][0] #first dimension pressure
-                output1_img = output1.data[0][0]
-                mask_img = focal_area.data[0][0].type(torch.FloatTensor)
-                output2_img = output2.data[0][0]
+                output_img = output.data[0][0]
+                viz.heatmap(target_img.cpu(), opts=dict(colormap='Greys'))
+                viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys'))
+                # viz.images(target_img.cpu(),
+                #     opts=dict(
+                #     caption='true'+fname, 
+                #     jpgquality=20       
+                #     )
+                #  )
 
-                viz.images(target_img.cpu(),
-                    opts=dict(
-                    caption='true'+fname, 
-                    jpgquality=20       
-                    )
-                 )
+                # viz.images(output_img.cpu(),
+                #     opts=dict(
+                #     caption='pred'+fname, 
+                #     jpgquality=20       
+                #     )
+                # )
 
-                viz.images(output1_img.cpu(),
-                    opts=dict(
-                    caption='pred-base'+fname, 
-                    jpgquality=20       
-                    )
-                )
-
-                viz.images(mask_img.cpu(),
-                   opts=dict(
-                   caption='mask', 
-                   jpgquality=20       
-                   )
-                )    
-
-                viz.images(output2_img.cpu(),
-                    opts=dict(
-                    caption='pred-mrn', 
-                    jpgquality=20       
-                    )
-                )   
-       
+                if args.use_focus:
+                    mask_img = focal_area.data[0][0].type(torch.FloatTensor)
+                    output1_img = output1.data[0][0]
+                    viz.heatmap(output1_img.cpu(), opts=dict(colormap='Greys'))
+                    viz.heatmap(mask_img.cpu(), opts=dict(colormap='Greys'))
+                    # viz.images(output1_img.cpu(),
+                    #     opts=dict(
+                    #     caption='pred-base', 
+                    #     jpgquality=20       
+                    #     )
+                    # )  
+                    # viz.images(mask_img.cpu(),
+                    #    opts=dict(
+                    #    caption='mask', 
+                    #    jpgquality=20       
+                    #    )
+                    # )    
 
     test_loss /= len(test_loader.dataset)
 

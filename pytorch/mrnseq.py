@@ -96,7 +96,7 @@ class DecoderRNN(nn.Module):
         x = torch.unsqueeze(x, 0) # T=1, TxBxD
         x, h = self.gru(x, h) #TxBxD
         # x = torch.squeeze(x, 0)
-        x = F.tanh(self.fc2(x.squeeze(0)))
+        x = self.fc2(x.squeeze(0))
         # x = x.view(x.size(0), 32, 4, 4) # channel up, kernel down with more convs
         # x = self.cnn_dec(x)
         x = x.view(self.args.batch_size, self.args.d_dim, self.args.x_dim, self.args.y_dim)
@@ -197,11 +197,13 @@ class FocDecoderRNN(nn.Module):
         # low-res predict
         x1 = mean_pool(x, self.kernel_sz, cuda=self.args.cuda)# compute mean behavior
         x1 = x1.view(x1.size(0), -1) 
-        x1 = F.relu(self.embed1(x1))
+        x1 = self.embed1(x1)
         x1 = torch.unsqueeze(x1, 0) # T=1, TxBxD
         x1, h1 = self.gru1(x1, h)
-        x1 = F.tanh(self.out1(x1.squeeze(0)))
+        x1 = self.out1(x1.squeeze(0))
         x1 = x1.view(self.args.batch_size, self.args.d_dim, int(self.args.x_dim/self.kernel_sz), int(self.args.y_dim/self.kernel_sz))
+        y1 = mean_unpool(x1, self.kernel_sz)
+
         # print('x1.shape', x1.shape)
 
         # predict refine area: center, width 
@@ -216,14 +218,10 @@ class FocDecoderRNN(nn.Module):
         # predict refine area: masking
         context = h.view(self.args.batch_size,-1)
         focal_area = self.focus(context)
-
-        focal_mask = (focal_area > 0.5).view((-1,1, int(self.args.x_dim/self.kernel_sz), int(self.args.y_dim/self.kernel_sz)))
-        
-        y1 = mean_unpool(x1, self.kernel_sz)
+        focal_mask = (focal_area).view((-1,1, int(self.args.x_dim/self.kernel_sz), int(self.args.y_dim/self.kernel_sz)))
         focal_mask = mean_unpool(focal_mask, self.kernel_sz)
     
-        y2 = y1.clone()
-
+        # y = y1.clone()
         # if len(cell_list):
         #     for cell in cell_list:
         #         # high-res predict
@@ -238,9 +236,11 @@ class FocDecoderRNN(nn.Module):
         x2 = F.relu(self.embed2(x2))
         x2 = torch.unsqueeze(x2, 0) # T=1, TxBxD
         x2, h2 = self.gru2(x2, h)
-        x2 = F.relu(self.out2(x2.squeeze(0)))
+        x2 = self.out2(x2.squeeze(0))
         x2 = x2.view(self.args.batch_size, self.args.d_dim, self.args.x_dim, self.args.y_dim)
-        y2 = y2 + x2.masked_scatter_(focal_mask, x2)
+
+        # y = y + x2.masked_scatter_(focal_mask, x2)
+        y = (1-focal_mask)*y1 + x2*focal_mask
 
                 # y2[:,:, xs:xe,ys:ye] = y2[:,:, xs:xe,ys:ye]+x2
 
@@ -251,10 +251,10 @@ class FocDecoderRNN(nn.Module):
         
 
         # combine outputs,combine hidden
+        y = y.unsqueeze(0)
         y1 = y1.unsqueeze(0)
-        y2 = y2.unsqueeze(0)
         y_h = h1
-        return (y1, y2, focal_mask), y_h
+        return (y, y1, focal_mask), y_h
 
     def initHidden(self):
         result = Variable(torch.zeros(self.n_layers, self.args.batch_size, self.hidden_size))
@@ -273,7 +273,7 @@ class Seq2Seq(nn.Module):
      
         self.encoder = EncoderRNN(self.args.h_dim, args=args)
    
-        self.use_focus = False
+        self.use_focus = self.args.use_focus
         self.use_attn = False
         if self.use_attn:
             self.decoder = AttnDecoderRNN(self.args.h_dim, args=args)
@@ -283,7 +283,7 @@ class Seq2Seq(nn.Module):
             self.decoder = DecoderRNN(self.args.h_dim,  args=args)
         if self.args.cuda: self.decoder = self.decoder.cuda()
 
-        self.teacher_forcing_ratio = 0.5
+        self.teacher_forcing_ratio = 0
 
 
     def parameters(self):
@@ -337,19 +337,22 @@ class Seq2Seq(nn.Module):
                 decoder_input = decoder_output
                 decoder_outputs += [decoder_output]
 
-        if self.use_focus:
-            decoder_outputs_with_t = [y[0].permute(1,0,2,3,4) for y in decoder_outputs]
-            output1 = torch.cat(decoder_outputs_with_t, dim=1)
-
-            decoder_outputs_with_t = [y[1].permute(1,0,2,3,4) for y in decoder_outputs]
-            output2 = torch.cat(decoder_outputs_with_t, dim=1)
-
-            decoder_outputs_with_t = [y[2].permute(1,0,2,3) for y in decoder_outputs]
-            focal_areas = torch.cat(decoder_outputs_with_t, dim=1)
-            return output1, output2, focal_areas
-
-        else:
+    
+        if not self.use_focus:
             decoder_outputs_with_t = [y.permute(1,0,2,3,4) for y in decoder_outputs]
             output = torch.cat(decoder_outputs_with_t, dim=1)
             return output
+
+        else:
+            decoder_outputs_with_t = [y[0].permute(1,0,2,3,4) for y in decoder_outputs]
+            output = torch.cat(decoder_outputs_with_t, dim=1)
+
+            decoder_outputs_with_t = [y[1].permute(1,0,2,3,4) for y in decoder_outputs]
+            output1 = torch.cat(decoder_outputs_with_t, dim=1)
+
+            decoder_outputs_with_t = [y[2].permute(1,0,2,3) for y in decoder_outputs]
+            focal_areas = torch.cat(decoder_outputs_with_t, dim=1)
+            return output, output1, focal_areas
+
+  
 
