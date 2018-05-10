@@ -61,7 +61,7 @@ parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
 parser.add_argument('--l2', type=float, default=0.005, metavar='LR')
 parser.add_argument('--opt', default="sgd")
 
-parser.add_argument('--use-focus', action='store_true', default=True,
+parser.add_argument('--use-focus', action='store_true', default=False,
                                         help='disables CUDA training')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                                         help='disables CUDA training')

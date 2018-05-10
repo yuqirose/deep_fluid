@@ -103,17 +103,17 @@ def train(train_loader, epoch, model, args, epoch_fig):
         #     )
         # )
         if target.data.dim()==5:
-            target = torch.squeeze(target)
-            output = torch.squeeze(output)
+            target = torch.squeeze(target,1)
+            output = torch.squeeze(output,1)
             if args.use_focus:
-                output1 = torch.squeeze(output1)
+                output1 = torch.squeeze(output1,1)
 
         target_img = target.data[0][0] #first dimension pressure
         output_img = output.data[0][0]
 
 
-        viz.heatmap(target_img.cpu(), opts=dict(colormap='Greys'))
-        viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys'))
+        viz.heatmap(target_img.cpu(), opts=dict(xmin=-50,xmax=50,colormap='Greys', title='true'))
+        viz.heatmap(output_img.cpu(), opts=dict(xmin=-50,xmax=50,colormap='Greys', title='pred'))
         # viz.images(target_img.cpu(),
         #     opts=dict(
         #     caption='true', 
@@ -133,8 +133,8 @@ def train(train_loader, epoch, model, args, epoch_fig):
             mask_img = focal_area.data[0][0].type(torch.FloatTensor)
        
         # print('target shape', target_img.shape, 'pred shape',output1_img.shape, 'focal shape', output2_img.shape)
-            viz.heatmap(output1_img.cpu(), opts=dict(colormap='Greys'))
-            viz.heatmap(mask_img.cpu(), opts=dict(colormap='Greys'))
+            viz.heatmap(output1_img.cpu(), opts=dict(xmin=-50, xmax=50, colormap='Greys', title='pred-base'))
+            viz.heatmap(mask_img.cpu(), opts=dict(xmin=-1, xmax=1, colormap='Greys', title='mask'))
 
             # viz.images(output1_img.cpu(),
             #     opts=dict(
@@ -208,8 +208,8 @@ def test(test_loader, epoch, model, args, valid=True):
                 
                 target_img = target.data[0][0] #first dimension pressure
                 output_img = output.data[0][0]
-                viz.heatmap(target_img.cpu(), opts=dict(colormap='Greys'))
-                viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys'))
+                viz.heatmap(target_img.cpu(), opts=dict(colormap='Greys', title='true'))
+                viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys', title='pred'))
                 # viz.images(target_img.cpu(),
                 #     opts=dict(
                 #     caption='true'+fname, 
@@ -227,8 +227,8 @@ def test(test_loader, epoch, model, args, valid=True):
                 if args.use_focus:
                     mask_img = focal_area.data[0][0].type(torch.FloatTensor)
                     output1_img = output1.data[0][0]
-                    viz.heatmap(output1_img.cpu(), opts=dict(colormap='Greys'))
-                    viz.heatmap(mask_img.cpu(), opts=dict(colormap='Greys'))
+                    viz.heatmap(output1_img.cpu(), opts=dict(colormap='Greys', title='pred-base'))
+                    viz.heatmap(mask_img.cpu(), opts=dict(colormap='Greys', title='mask'))
                     # viz.images(output1_img.cpu(),
                     #     opts=dict(
                     #     caption='pred-base', 
