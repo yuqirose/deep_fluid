@@ -27,7 +27,7 @@ lr=1e-3
 l2=1e-2
 
 input_len=5
-output_len=1
+output_len=3
 save_dir="../saves/$start_time"
 
 mkdir -p $save_dir
