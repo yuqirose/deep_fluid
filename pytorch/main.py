@@ -16,15 +16,9 @@ from train import train, test
 from reader import Smoke2dDataset, SmokeDataset
 import os
 import numpy as np
-<<<<<<< HEAD
 from seq2seq import Seq2Seq
 # from mrnseq import Seq2Seq
 from cnn_ae import Conv2dAE, Conv2dLSTM
-=======
-#from seq2seq import Seq2Seq
-# from mrnseq import Seq2Seq
-from cnn_ae import Conv2dAE, Conv2dAESeq
->>>>>>> 6ef381fb50de9b3da8cfe8cc84bf8e8d4233ef44
 
 
 import visdom
@@ -54,11 +48,7 @@ parser.add_argument('--sim-len', type=int, default=50, metavar='N')
 parser.add_argument('--x-dim', type=int, default=64, metavar='N')
 parser.add_argument('--y-dim', type=int, default=64, metavar='N')
 parser.add_argument('--d-dim', type=int, default=1, metavar='N')
-<<<<<<< HEAD
-parser.add_argument('--h-dim', type=int, default=512, metavar='N')
-=======
 parser.add_argument('--h-dim', type=int, default=64, metavar='N')
->>>>>>> 6ef381fb50de9b3da8cfe8cc84bf8e8d4233ef44
 
 parser.add_argument('--batch-size', type=int, default=5, metavar='N')
 parser.add_argument('--n-layers', type=int, default=1, metavar='N')
@@ -121,7 +111,7 @@ if __name__ == "__main__":
     test_loader = torch.utils.data.DataLoader(test_dataset,
         batch_size=1)
 
-    model = Conv2dAESeq(args)
+    model = Seq2Seq(args)
 
 
     if args.cuda:

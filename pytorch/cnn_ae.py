@@ -57,33 +57,7 @@ class Conv2dAE(nn.Module):
         return x
 
 
-<<<<<<< HEAD
-class Conv2dAE_Con(nn.Module):
-    def __init__(self, args):
-        super(Conv2dAE, self).__init__()
-        # self.encoder = nn.Sequential(
-        #     nn.Conv2d(1, 16, 3, stride=3, padding=1),  # b, 16, 10, 10
-        #     nn.ReLU(True),
-        #     nn.MaxPool2d(2, stride=2),  # b, 16, 5, 5
-        #     nn.Conv2d(16, 8, 3, stride=2, padding=1),  # b, 8, 3, 3
-        #     nn.ReLU(True),
-        #     nn.MaxPool2d(2, stride=1)  # b, 8, 2, 2
-        # )
-        # self.decoder = nn.Sequential(
-        #     nn.ConvTranspose2d(8, 16, 3, stride=2),  # b, 16, 5, 5
-        #     nn.ReLU(True),
-        #     nn.ConvTranspose2d(16, 8, 5, stride=3, padding=1),  # b, 8, 15, 15
-        #     nn.ReLU(True),
-        #     nn.ConvTranspose2d(8, 1, 2, stride=2, padding=1),  # b, 1, 28, 28
-        #     nn.Tanh()
-        # ) 
-        conv_dim=4
-        self.args = args
-        c_dim = self.args.c_dim
-        
-        self.encoder =  nn.Sequential(
-            nn.Conv2d(c_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
-=======
+
 class Conv2dAESeq(nn.Module):
     def __init__(self, args):
         super(Conv2dAESeq, self).__init__()
@@ -94,25 +68,13 @@ class Conv2dAESeq(nn.Module):
         
         self.encoder =  nn.Sequential(
             nn.Conv2d(d_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
->>>>>>> 6ef381fb50de9b3da8cfe8cc84bf8e8d4233ef44
             nn.BatchNorm2d(conv_dim),
             nn.Conv2d(conv_dim, conv_dim*2, 4, 2, 1),
             nn.BatchNorm2d(conv_dim*2),
             nn.Conv2d(conv_dim*2, conv_dim*4, 4, 2, 1),
             nn.BatchNorm2d(conv_dim*4),
             nn.Conv2d(conv_dim*4, conv_dim*8, 4, 2, 1),
-<<<<<<< HEAD
         )
-        
-
-        self.decoder = nn.Sequential(
-=======
-            nn.BatchNorm2d(conv_dim*8),
-            nn.Conv2d(conv_dim*8, conv_dim*16, 4, 2, 1),
-            nn.BatchNorm2d(conv_dim*16),
-            nn.Conv2d(conv_dim*16, conv_dim*32, 4, 2, 1)
-        )
-
         channel_sz  = 128
         
         self.fc = nn.Linear(self.args.input_len*channel_sz, self.args.output_len*channel_sz)
@@ -122,28 +84,16 @@ class Conv2dAESeq(nn.Module):
             nn.BatchNorm2d(conv_dim*16),
             nn.ConvTranspose2d(conv_dim*16, conv_dim*8, 4, 2,1),
             nn.BatchNorm2d(conv_dim*8),
->>>>>>> 6ef381fb50de9b3da8cfe8cc84bf8e8d4233ef44
             nn.ConvTranspose2d(conv_dim*8, conv_dim*4, 4, 2,1),
             nn.BatchNorm2d(conv_dim*4),
             nn.ConvTranspose2d(conv_dim*4, conv_dim*2, 4,2,1),
             nn.BatchNorm2d(conv_dim*2),
             nn.ConvTranspose2d(conv_dim*2, conv_dim, 4,2,1),
-            nn.BatchNorm2d(conv_dim),
-<<<<<<< HEAD
-            nn.ConvTranspose2d(conv_dim,c_dim, 4,2,1)
-=======
-            nn.ConvTranspose2d(conv_dim,d_dim, 4,2,1)
->>>>>>> 6ef381fb50de9b3da8cfe8cc84bf8e8d4233ef44
+            nn.BatchNorm2d(conv_dim)
         )
 
 
     def forward(self, x):
-<<<<<<< HEAD
-        x = self.encoder(x)
-        x = self.decoder(x)
-        return x
-
-=======
         bt_sz = x.size(0)
         enc = []
         x = x.permute(1,0,2,3,4)
@@ -163,7 +113,6 @@ class Conv2dAESeq(nn.Module):
             y += [dec_t.unsqueeze(1)]
         y = torch.cat(y, dim=1)
         return y
->>>>>>> 6ef381fb50de9b3da8cfe8cc84bf8e8d4233ef44
 
 class Conv2dLSTM(nn.Module):
     """2d Convolution with LSTM:

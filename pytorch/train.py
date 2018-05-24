@@ -49,7 +49,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
             output, output1, focal_area= model(data,target)
 
         else:
-            output  = model(data)
+            output  = model(data, target)
 
         # output
         # print("output shape ", output.shape)
@@ -171,7 +171,7 @@ def test(test_loader, epoch, model, args, valid=True):
         if args.use_focus:
             output, output1, focal_area = model(data, target)
         else :
-            output = model(data)
+            output = model(data, target)
 
 
         # output
