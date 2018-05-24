@@ -49,7 +49,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
             output, output1, focal_area= model(data,target)
 
         else:
-            output  = model(data, target)
+            output  = model(data)
 
         # output
         # print("output shape ", output.shape)
@@ -108,12 +108,13 @@ def train(train_loader, epoch, model, args, epoch_fig):
             if args.use_focus:
                 output1 = torch.squeeze(output1,1)
 
-        target_img = target.data[0][0][0] #first dimension pressure
-        output_img = output.data[0][0][0]
 
+        for t in range(args.output_len):
+            target_img = target.data[0][t][0]#first dimension pressure
+            output_img = output.data[0][t][0]
 
-        viz.heatmap(target_img.cpu(), opts=dict(colormap='Greys', title='true'))
-        viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys', title='pred'))
+            viz.heatmap(target_img.cpu(), opts=dict(colormap='Greys', title='true'+"_"+str(t)))
+            viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys', title='pred'+"_"+str(t)))
         # viz.images(target_img.cpu(),
         #     opts=dict(
         #     caption='true', 
@@ -170,7 +171,7 @@ def test(test_loader, epoch, model, args, valid=True):
         if args.use_focus:
             output, output1, focal_area = model(data, target)
         else :
-            output = model(data, target)
+            output = model(data)
 
 
         # output
@@ -206,8 +207,9 @@ def test(test_loader, epoch, model, args, valid=True):
                     if args.use_focus:
                         output1 = torch.squeeze(output1,1)
                 
-                target_img = target.data[0][0] #first dimension pressure
-                output_img = output.data[0][0]
+
+                target_img = target.data[0][0][0] #first dimension pressure
+                output_img = output.data[0][0][0]
                 viz.heatmap(target_img.cpu(), opts=dict(colormap='Greys', title='true'+fname))
                 viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys', title='pred'+fname))
                 # viz.images(target_img.cpu(),
