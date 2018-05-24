@@ -16,8 +16,8 @@ from train import train, test
 from reader import Smoke2dDataset, SmokeDataset
 import os
 import numpy as np
-#from seq2seq import Seq2Seq
-from mrnseq import Seq2Seq
+from seq2seq import Seq2Seq
+# from mrnseq import Seq2Seq
 from cnn_ae import Conv2dAE, Conv2dLSTM
 
 
@@ -40,15 +40,15 @@ parser.add_argument('--dataset', type=str, default="train", metavar='N')
 parser.add_argument('--valid-size', type=float, default=0.5, metavar='N')
 
 parser.add_argument('--input-len', type=int, default=3, metavar='N')
-parser.add_argument('--output-len', type=int, default=1, metavar='N')
+parser.add_argument('--output-len', type=int, default=2, metavar='N')
 parser.add_argument('--train-sim-num', type=int, default=3, metavar='N')
 parser.add_argument('--test-sim-num', type=int, default=1, metavar='N')
 parser.add_argument('--sim-len', type=int, default=50, metavar='N')
 
 parser.add_argument('--x-dim', type=int, default=64, metavar='N')
 parser.add_argument('--y-dim', type=int, default=64, metavar='N')
-parser.add_argument('--d-dim', type=int, default=4, metavar='N')
-parser.add_argument('--h-dim', type=int, default=128, metavar='N')
+parser.add_argument('--d-dim', type=int, default=1, metavar='N')
+parser.add_argument('--h-dim', type=int, default=512, metavar='N')
 
 parser.add_argument('--batch-size', type=int, default=5, metavar='N')
 parser.add_argument('--n-layers', type=int, default=1, metavar='N')

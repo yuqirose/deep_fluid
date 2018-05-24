@@ -147,8 +147,9 @@ class SmokeDataset(Dataset):
 
         for t in range(self.T):
             arr_p = read_npz_file(self.data_dir, sim_idx, step_idx+t,'pressure')
-            arr_v = read_npz_file(self.data_dir, sim_idx, step_idx+t,'velocity')
-            states = np.append(states, np.expand_dims(np.concatenate((arr_p, arr_v)),0), 0)
+            states = np.append(states, np.expand_dims(arr_p, 0), 0)
+            # arr_v = read_npz_file(self.data_dir, sim_idx, step_idx+t,'velocity')
+            # states = np.append(states, np.expand_dims(np.concatenate((arr_p, arr_v)),0), 0)
 
         data = states[:self.args.input_len,]
         label = states[self.args.input_len:,]

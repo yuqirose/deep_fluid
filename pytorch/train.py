@@ -108,12 +108,12 @@ def train(train_loader, epoch, model, args, epoch_fig):
             if args.use_focus:
                 output1 = torch.squeeze(output1,1)
 
-        target_img = target.data[0][0] #first dimension pressure
-        output_img = output.data[0][0]
+        target_img = target.data[0][0][0] #first dimension pressure
+        output_img = output.data[0][0][0]
 
 
-        viz.heatmap(target_img.cpu(), opts=dict(xmin=-50,xmax=50,colormap='Greys', title='true'))
-        viz.heatmap(output_img.cpu(), opts=dict(xmin=-50,xmax=50,colormap='Greys', title='pred'))
+        viz.heatmap(target_img.cpu(), opts=dict(colormap='Greys', title='true'))
+        viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys', title='pred'))
         # viz.images(target_img.cpu(),
         #     opts=dict(
         #     caption='true', 
@@ -208,8 +208,8 @@ def test(test_loader, epoch, model, args, valid=True):
                 
                 target_img = target.data[0][0] #first dimension pressure
                 output_img = output.data[0][0]
-                viz.heatmap(target_img.cpu(), opts=dict(colormap='Greys', title='true'))
-                viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys', title='pred'))
+                viz.heatmap(target_img.cpu(), opts=dict(colormap='Greys', title='true'+fname))
+                viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys', title='pred'+fname))
                 # viz.images(target_img.cpu(),
                 #     opts=dict(
                 #     caption='true'+fname, 
@@ -227,8 +227,8 @@ def test(test_loader, epoch, model, args, valid=True):
                 if args.use_focus:
                     mask_img = focal_area.data[0][0].type(torch.FloatTensor)
                     output1_img = output1.data[0][0]
-                    viz.heatmap(output1_img.cpu(), opts=dict(colormap='Greys', title='pred-base'))
-                    viz.heatmap(mask_img.cpu(), opts=dict(colormap='Greys', title='mask'))
+                    viz.heatmap(output1_img.cpu(), opts=dict(colormap='Greys', title='pred-base'+fname))
+                    viz.heatmap(mask_img.cpu(), opts=dict(colormap='Greys', title='mask'+fname))
                     # viz.images(output1_img.cpu(),
                     #     opts=dict(
                     #     caption='pred-base', 

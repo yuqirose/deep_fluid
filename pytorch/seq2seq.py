@@ -16,11 +16,11 @@ class EncoderRNN(nn.Module):
         self.args = args
         self.n_layers = n_layers
         self.hidden_size = hidden_size
-        c_dim = self.args.c_dim
+        d_dim = self.args.d_dim
         conv_dim = 4
 
         self.cnn =  nn.Sequential(
-            nn.Conv2d(c_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
+            nn.Conv2d(d_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
             nn.BatchNorm2d(conv_dim),
             nn.Conv2d(conv_dim, conv_dim*2, 4, 2, 1),
             nn.BatchNorm2d(conv_dim*2),
@@ -30,7 +30,7 @@ class EncoderRNN(nn.Module):
         )
 
         # input_size = int(self.args.x_dim * self.args.y_dim/(2**3) ) #tbd:calculate
-        input_size = self.args.x_dim*self.args.y_dim*self.args.c_dim 
+        input_size = self.args.x_dim*self.args.y_dim*self.args.d_dim 
         self.fc1 = nn.Linear(input_size, self.hidden_size)
         self.gru = nn.GRU(self.hidden_size, self.hidden_size, self.n_layers)
         self.fc2 = nn.Linear(self.hidden_size, input_size)
@@ -60,13 +60,13 @@ class DecoderRNN(nn.Module):
         self.n_layers = n_layers
         self.hidden_size = hidden_size
         conv_dim = 4
-        c_dim = self.args.c_dim
+        d_dim = self.args.d_dim
 
         # input_size = int(self.args.x_dim * self.args.y_dim/(2**3))
-        input_size = self.args.x_dim*self.args.y_dim*self.args.c_dim 
+        input_size = self.args.x_dim*self.args.y_dim*self.args.d_dim 
 
         self.cnn_enc =  nn.Sequential(
-            nn.Conv2d(c_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
+            nn.Conv2d(d_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
             nn.BatchNorm2d(conv_dim),
             nn.Conv2d(conv_dim, conv_dim*2, 4, 2, 1),
             nn.BatchNorm2d(conv_dim*2),
@@ -85,12 +85,12 @@ class DecoderRNN(nn.Module):
             nn.BatchNorm2d(conv_dim*2),
             nn.ConvTranspose2d(conv_dim*2, conv_dim, 4,2,1),
             nn.BatchNorm2d(conv_dim),
-            nn.ConvTranspose2d(conv_dim,c_dim, 4,2,1)
+            nn.ConvTranspose2d(conv_dim,d_dim, 4,2,1)
         )
 
     def forward(self, x, h):
         # x = self.cnn_enc(x) 
-        x = x.view(x.size(0), -1)
+        x = x.contiguous().view(x.size(0), -1)
         x = self.fc1(x)
         x = torch.unsqueeze(x, 0) # T=1, TxBxD
         x, h = self.gru(x, h) #TxBxD
@@ -98,7 +98,7 @@ class DecoderRNN(nn.Module):
         x = self.fc2(x.squeeze(0))
         # x = x.view(x.size(0), 32, 4, 4) # channel up, kernel down with more convs
         # x = self.cnn_dec(x)
-        x = x.view(1,  self.args.batch_size, self.args.x_dim, self.args.y_dim)
+        x = x.view(self.args.batch_size, self.args.d_dim, self.args.x_dim, self.args.y_dim)
         return x, h
 
     def initHidden(self):
@@ -189,7 +189,7 @@ class Seq2Seq(nn.Module):
         # encoder forward pass
         encoder_hidden = self.encoder.initHidden()
         encoder_outputs = []
-        # B x T x C x H x W -> T x B x C x H x W
+        # B x T x D x H x W -> T x B x D x H x W
         encoder_inputs = x.permute(1,0,2,3,4)
         for t in range(self.args.input_len):
             # TBD: different batch size
@@ -198,8 +198,7 @@ class Seq2Seq(nn.Module):
         encoder_outputs = torch.cat(encoder_outputs, 0)
 
         # decoder forward pass
-
-        decoder_input = Variable(torch.zeros(x.size(0), self.args.c_dim, self.args.x_dim, self.args.y_dim))
+        decoder_input = Variable(torch.zeros(self.args.batch_size, self.args.d_dim, self.args.x_dim, self.args.y_dim))
         decoder_input = decoder_input.cuda() if self.args.cuda else decoder_input
 
         decoder_hidden = encoder_hidden
@@ -230,6 +229,6 @@ class Seq2Seq(nn.Module):
                 decoder_input = decoder_output
                 decoder_outputs += [decoder_output]
 
-        decoder_outputs_with_t = [torch.unsqueeze(y.permute(1,0,2,3), 1) for y in decoder_outputs]
+        decoder_outputs_with_t = [torch.unsqueeze(y, 1) for y in decoder_outputs]
         output = torch.cat(decoder_outputs_with_t, dim=1)
         return output
