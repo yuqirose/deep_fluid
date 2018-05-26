@@ -16,10 +16,39 @@ class EncoderRNN(nn.Module):
         self.args = args
         self.n_layers = n_layers
         self.hidden_size = hidden_size
+
+        input_size = self.args.x_dim*self.args.y_dim*self.args.d_dim 
+        self.fc1 = nn.Linear(input_size, self.hidden_size)
+        self.gru = nn.GRU(self.hidden_size, self.hidden_size, self.n_layers)
+        self.fc2 = nn.Linear(self.hidden_size, input_size)
+
+    def forward(self, x, h):
+        x = x.contiguous().view(x.size(0), -1)        
+        x = self.fc1(x)
+        x = torch.unsqueeze(x, 0) # T=1, TxBxD
+        x, h = self.gru(x, h)
+        x = self.fc2(x.squeeze(0))
+        x = x.view(self.args.batch_size, self.args.d_dim, self.args.x_dim, self.args.y_dim)
+        return x, h
+
+    def initHidden(self):
+        h = Variable(torch.zeros(self.n_layers, self.args.batch_size, self.hidden_size))
+        if self.args.cuda:
+            return h.cuda()
+        else:
+            return h
+
+
+class EncoderCRNN(nn.Module):
+    def __init__(self, hidden_size, n_layers=1, args=None):
+        super(EncoderCRNN, self).__init__()
+        self.args = args
+        self.n_layers = n_layers
+        self.hidden_size = hidden_size
         d_dim = self.args.d_dim
         conv_dim = 4
 
-        self.cnn =  nn.Sequential(
+        self.cnn_enc =  nn.Sequential(
             nn.Conv2d(d_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
             nn.BatchNorm2d(conv_dim),
             nn.Conv2d(conv_dim, conv_dim*2, 4, 2, 1),
@@ -29,16 +58,14 @@ class EncoderRNN(nn.Module):
             nn.Conv2d(conv_dim*4, conv_dim*8, 4, 2, 1)
         )
 
-        # input_size = int(self.args.x_dim * self.args.y_dim/(2**3) ) #tbd:calculate
         input_size = self.args.x_dim*self.args.y_dim*self.args.d_dim 
-        self.fc1 = nn.Linear(input_size, self.hidden_size)
-        self.gru = nn.GRU(self.hidden_size, self.hidden_size, self.n_layers)
+        channel_size = 512
+        self.gru = nn.GRU(channel_size, self.hidden_size, self.n_layers)
         self.fc2 = nn.Linear(self.hidden_size, input_size)
 
     def forward(self, x, h):
-        # x = self.cnn(x) #channel_in=1
-        x = x.contiguous().view(x.size(0), -1)        
-        x = self.fc1(x)
+        x = self.cnn_enc(x) #channel_in=1
+        x = x.contiguous().view(x.size(0), -1)   
         x = torch.unsqueeze(x, 0) # T=1, TxBxD
         x, h = self.gru(x, h)
         x = self.fc2(x.squeeze(0))
@@ -56,14 +83,42 @@ class DecoderRNN(nn.Module):
     def __init__(self, hidden_size, n_layers=1, args=None):
         super(DecoderRNN, self).__init__()
         self.args = args
+        self.n_layers = n_layers
+        self.hidden_size = hidden_size
+        input_size = self.args.x_dim*self.args.y_dim*self.args.d_dim 
+
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, n_layers)
+        self.fc2 = nn.Linear(hidden_size, input_size)
+
+    def forward(self, x, h):
+        x = x.contiguous().view(x.size(0), -1)
+        x = self.fc1(x)
+        x = torch.unsqueeze(x, 0) # T=1, TxBxD
+        x, h = self.gru(x, h) #TxBxD
+        x = self.fc2(x.squeeze(0))
+        x = x.view(self.args.batch_size, self.args.d_dim, self.args.x_dim, self.args.y_dim)
+        return x, h
+
+    def initHidden(self):
+        h = Variable(torch.zeros(self.n_layers, self.args.batch_size, self.hidden_size))
+        if self.args.cuda:
+            return h.cuda()
+        else:
+            return h
+
+class DecoderCRNN(nn.Module):
+    def __init__(self, hidden_size, n_layers=1, args=None):
+        super(DecoderCRNN, self).__init__()
+        self.args = args
 
         self.n_layers = n_layers
         self.hidden_size = hidden_size
         conv_dim = 4
         d_dim = self.args.d_dim
 
-        # input_size = int(self.args.x_dim * self.args.y_dim/(2**3))
         input_size = self.args.x_dim*self.args.y_dim*self.args.d_dim 
+        channel_size = 512
 
         self.cnn_enc =  nn.Sequential(
             nn.Conv2d(d_dim, conv_dim, 4, 2, 1),#in_channels, out_channels, kernel, stride, padding
@@ -74,8 +129,7 @@ class DecoderRNN(nn.Module):
             nn.BatchNorm2d(conv_dim*4),
             nn.Conv2d(conv_dim*4, conv_dim*8, 4, 2, 1)
         )
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size, n_layers)
+        self.gru = nn.GRU(channel_size, hidden_size, n_layers)
         self.fc2 = nn.Linear(hidden_size, input_size)
 
         self.cnn_dec =  nn.Sequential(
@@ -89,12 +143,10 @@ class DecoderRNN(nn.Module):
         )
 
     def forward(self, x, h):
-        # x = self.cnn_enc(x) 
+        x = self.cnn_enc(x) 
         x = x.contiguous().view(x.size(0), -1)
-        x = self.fc1(x)
         x = torch.unsqueeze(x, 0) # T=1, TxBxD
         x, h = self.gru(x, h) #TxBxD
-        # x = torch.squeeze(x, 0)
         x = self.fc2(x.squeeze(0))
         # x = x.view(x.size(0), 32, 4, 4) # channel up, kernel down with more convs
         # x = self.cnn_dec(x)
@@ -107,7 +159,6 @@ class DecoderRNN(nn.Module):
             return h.cuda()
         else:
             return h
-
 
 
 class AttnDecoderRNN(nn.Module):
@@ -170,12 +221,12 @@ class Seq2Seq(nn.Module):
         self.args = args
         T = torch.cuda if self.args.cuda else torch
 
-        self.encoder = EncoderRNN(self.args.h_dim, self.args.n_layers, args=args)
+        self.encoder = EncoderCRNN(self.args.h_dim, self.args.n_layers, args=args)
         self.use_attn = False
         if self.use_attn:
             self.decoder = AttnDecoderRNN(self.args.h_dim, args=args)
         else:
-            self.decoder = DecoderRNN(self.args.h_dim, self.args.n_layers, args=args)
+            self.decoder = DecoderCRNN(self.args.h_dim, self.args.n_layers, args=args)
 
         self.teacher_forcing_ratio = 0.5
 
