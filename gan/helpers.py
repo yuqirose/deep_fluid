@@ -46,26 +46,27 @@ def update_discrim(discrim_net,
                    i_iter,
                    dis_times,
                    use_gpu,
-                   train=True):
-
-    if use_gpu:
-        exp_states, exp_actions, states, actions = exp_states.cuda(), exp_actions.cuda(), states.cuda(), actions.cuda()
+                   train=True, device="cpu"):
 
     """update discriminator"""
     g_o_ave = 0.0
     e_o_ave = 0.0
-    for _ in range(int(dis_times)):
-        g_o = discrim_net(states, actions)
-        e_o = discrim_net(exp_states, exp_actions)
+    
+    g_o = discrim_net(states, actions)
+    e_o = discrim_net(exp_states, exp_actions)
 
-        g_o_ave += g_o.cpu().data.mean()
-        e_o_ave += e_o.cpu().data.mean()
+    g_o_ave += g_o.cpu().data.mean()
+    e_o_ave += e_o.cpu().data.mean()
 
-        if train:
-            optimizer_discrim.zero_grad()
-            discrim_loss = discrim_criterion(g_o, zeros((g_o.shape[0], g_o.shape[1], 1))) +
-                discrim_criterion(e_o, ones((e_o.shape[0], e_o.shape[1], 1)))
-            discrim_loss.backward()
+    if train:
+        optimizer_discrim.zero_grad()
+
+        _zeros = zeros((g_o.shape[0], g_o.shape[1], 1)).to(device)
+        _ones = ones((e_o.shape[0], e_o.shape[1], 1)).to(device)
+        discrim_loss = discrim_criterion(g_o, _zeros) + discrim_criterion(e_o, _ones)
+        discrim_loss.backward()
+    
+        for _ in range(int(dis_times)):
             optimizer_discrim.step()
 
     if dis_times > 0:
