@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
     if args.cuda:
         model = model.cuda()
-        
+
     #plot
     # initialize visdom loss plot
     fig = viz.line(
@@ -144,11 +144,11 @@ if __name__ == "__main__":
     valid_losses = []
 
     for epoch in range(1, args.n_epochs + 1):
-        
+
         #training + validation
         train_loss = train(train_loader, epoch, model, args, epoch_fig)
         valid_loss = test(valid_loader, epoch, model,args)
-        
+
         # save train valid loss
         train_losses.append(train_loss)
         valid_losses.append(valid_loss)

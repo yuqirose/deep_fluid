@@ -5,12 +5,9 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-sys.path.append("../tensorflow/tools")
-import uniio
-
 
 def read_uni_file(data_dir, sim_idx, step_idx):
-    filename = "%s/sim_%04d/"+var_name+"_low_%04d.uni" 
+    filename = "%s/sim_%04d/"+var_name+"_low_%04d.uni"
     uniPath = filename % (data_dir, sim_idx, step_idx)  # 100 files per sim
     header, content = uniio.readUni(uniPath)
     h = header['dimX']
@@ -24,7 +21,7 @@ def read_npz_file(data_dir, sim_idx, step_idx, var_name):
     """
     var_name: string pressure/velocity
     """
-    filename = "%s/sim_%04d/"+var_name+"_low_%04d.npz" 
+    filename = "%s/sim_%04d/"+var_name+"_low_%04d.npz"
     npz_path = filename % (data_dir, sim_idx, step_idx)
     data = np.load(npz_path)
     arr = data['arr_0']
@@ -44,7 +41,7 @@ class Smoke2dDataset(Dataset):
             valid (bool, optional): Description
             transform (callable, optional): Optional transform to be applied
                 on a sample.
-        
+
         Deleted Parameters:
             root_dir (string): Directory with all the images.
         """
@@ -62,7 +59,7 @@ class Smoke2dDataset(Dataset):
         self.transform = transform
 
     def __len__(self):
-        """ num of frames        
+        """ num of frames
         Returns:
             int: Total num of frames
         """
@@ -70,10 +67,10 @@ class Smoke2dDataset(Dataset):
 
     def __getitem__(self, idx):
         """Summary
-        
+
         Args:
             idx (TYPE): Description
-        
+
         Returns:
             TYPE: Description
         """
@@ -92,7 +89,7 @@ class Smoke2dDataset(Dataset):
 
         if self.transform is not None:
             data = self.transform(data)
-        
+
         return data, label
 
 
@@ -116,14 +113,14 @@ class SmokeDataset(Dataset):
         else:
             self.data_dir = self.args.test_dir
             self.num_sim = self.args.test_sim_num
-        
+
         self.T = self.args.input_len + self.args.output_len
         self.N = (self.args.sim_len-self.T) * self.num_sim # number of seqs
         self.transform = transform
 
 
     def __len__(self):
-        """ num of frames        
+        """ num of frames
         Returns:
             int: Total num of frames
         """
@@ -131,10 +128,10 @@ class SmokeDataset(Dataset):
 
     def __getitem__(self, idx):
         """Summary
-        
+
         Args:
             idx (TYPE): Description
-        
+
         Returns:
             TYPE: Description
         """
@@ -154,14 +151,14 @@ class SmokeDataset(Dataset):
         data = states[:self.args.input_len,]
         label = states[self.args.input_len:,]
 
-        # seq_len x depth x height x width 
+        # seq_len x depth x height x width
         data = torch.from_numpy(data).type(torch.FloatTensor)
         label = torch.from_numpy(label).type(torch.FloatTensor)
         # print("data shape ", data.shape,"label shape",label.shape)
 
         if self.transform is not None:
-            data  = (data - 0.00015)/ (0.0088)    
-            label  = (label - 0.00015)/ (0.0088)   
+            data  = (data - 0.00015)/ (0.0088)
+            label  = (label - 0.00015)/ (0.0088)
         return data, label
 
 
@@ -190,11 +187,11 @@ class LorenzDataset(Dataset):
         self.N = int(1e2)
         self.s0 = np.random.rand(self.N, 3)
         self._dt = 0.01
-        
+
     @property
     def dt(self):
         """Summary
-        
+
         Returns:
             TYPE: Description
         """
@@ -203,7 +200,7 @@ class LorenzDataset(Dataset):
 
     def __len__(self):
         """Summary
-        
+
         Returns:
             TYPE: Description
         """
@@ -211,10 +208,10 @@ class LorenzDataset(Dataset):
 
     def __getitem__(self, idx):
         """Summary
-        
+
         Args:
             idx (TYPE): Description
-        
+
         Returns:
             TYPE: Description
         """
@@ -236,7 +233,7 @@ class LorenzDataset(Dataset):
 
     def lorenz(self, x, y, z, s=10, r=28, b=2.667):
         """Summary
-        
+
         Args:
             x (TYPE): Description
             y (TYPE): Description
@@ -244,7 +241,7 @@ class LorenzDataset(Dataset):
             s (int, optional): Description
             r (int, optional): Description
             b (float, optional): Description
-        
+
         Returns:
             TYPE: Description
         """
@@ -255,12 +252,12 @@ class LorenzDataset(Dataset):
 
     def gen_lorenz_series(self, s0, num_steps, num_freq):
         """Summary
-        
+
         Args:
             s0 (TYPE): Description
             num_steps (TYPE): Description
             num_freq (TYPE): Description
-        
+
         Returns:
             TYPE: Description
         """
@@ -283,7 +280,7 @@ class LorenzDataset(Dataset):
         """calculate the Lyapunav exponents,
         http://www.math.tamu.edu/~mpilant/math614/Matlab/Lyapunov/LorenzSpectrum.pdf
         can also consider Richardson extrapolation
-        
+
         Args:
             s (TYPE): Description
         """

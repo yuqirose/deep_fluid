@@ -35,7 +35,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
 
     clip = 10
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,weight_decay=args.l2)
- 
+
     for batch_idx, (data, target) in enumerate(train_loader):
         # print("data shape ", data.shape,"target shape",target.shape)
         if args.cuda:
@@ -117,50 +117,50 @@ def train(train_loader, epoch, model, args, epoch_fig):
             viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys', title='pred'+"_"+str(t)))
         # viz.images(target_img.cpu(),
         #     opts=dict(
-        #     caption='true', 
-        #     jpgquality=20       
+        #     caption='true',
+        #     jpgquality=20
         #     )
         # )
-     
+
         # viz.images(output_img.cpu(),
         #     opts=dict(
-        #     caption='pred', 
-        #     jpgquality=20       
+        #     caption='pred',
+        #     jpgquality=20
         #     )
         # )
 
         if args.use_focus:
             output1_img = output1.data[0][0]
             mask_img = focal_area.data[0][0].type(torch.FloatTensor)
-       
+
         # print('target shape', target_img.shape, 'pred shape',output1_img.shape, 'focal shape', output2_img.shape)
             viz.heatmap(output1_img.cpu(), opts=dict(xmin=-50, xmax=50, colormap='Greys', title='pred-base'))
             viz.heatmap(mask_img.cpu(), opts=dict(xmin=-1, xmax=1, colormap='Greys', title='mask'))
 
             # viz.images(output1_img.cpu(),
             #     opts=dict(
-            #     caption='pred-base', 
-            #     jpgquality=20       
+            #     caption='pred-base',
+            #     jpgquality=20
             #     )
             # )
             # viz.images(mask_img.cpu(),
             #     opts=dict(
-            #     caption='mask', 
-            #     jpgquality=20       
+            #     caption='mask',
+            #     jpgquality=20
             #     )
             # )
 
 
-               
+
 
     return train_loss
 
 def test(test_loader, epoch, model, args, valid=True):
-    """uses test data to evaluate 
+    """uses test data to evaluate
     likelihood of the model"""
-    
+
     test_loss = 0.0
-    for i, (data, target) in enumerate(test_loader):                                            
+    for i, (data, target) in enumerate(test_loader):
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
@@ -197,7 +197,7 @@ def test(test_loader, epoch, model, args, valid=True):
                 np.savez(args.save_dir+save_fname, output1.data.cpu().numpy())
                 save_fname = "/mask_"+fname
                 np.savez(args.save_dir+save_fname, focal_area.data.type(torch.FloatTensor).cpu().numpy())
-                    
+
             print('Saved prediction to '+args.save_dir+save_fname)
 
             if PLOT_ON == True and step_idx%50==1:
@@ -206,7 +206,7 @@ def test(test_loader, epoch, model, args, valid=True):
                     output = torch.squeeze(output,1)
                     if args.use_focus:
                         output1 = torch.squeeze(output1,1)
-                
+
 
                 target_img = target.data[0][0][0] #first dimension pressure
                 output_img = output.data[0][0][0]
@@ -214,15 +214,15 @@ def test(test_loader, epoch, model, args, valid=True):
                 viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys', title='pred'+fname))
                 # viz.images(target_img.cpu(),
                 #     opts=dict(
-                #     caption='true'+fname, 
-                #     jpgquality=20       
+                #     caption='true'+fname,
+                #     jpgquality=20
                 #     )
                 #  )
 
                 # viz.images(output_img.cpu(),
                 #     opts=dict(
-                #     caption='pred'+fname, 
-                #     jpgquality=20       
+                #     caption='pred'+fname,
+                #     jpgquality=20
                 #     )
                 # )
 
@@ -233,16 +233,16 @@ def test(test_loader, epoch, model, args, valid=True):
                     viz.heatmap(mask_img.cpu(), opts=dict(colormap='Greys', title='mask'+fname))
                     # viz.images(output1_img.cpu(),
                     #     opts=dict(
-                    #     caption='pred-base', 
-                    #     jpgquality=20       
+                    #     caption='pred-base',
+                    #     jpgquality=20
                     #     )
-                    # )  
+                    # )
                     # viz.images(mask_img.cpu(),
                     #    opts=dict(
-                    #    caption='mask', 
-                    #    jpgquality=20       
+                    #    caption='mask',
+                    #    jpgquality=20
                     #    )
-                    # )    
+                    # )
 
     test_loss /= len(test_loader.dataset)
 
@@ -253,7 +253,7 @@ def test(test_loader, epoch, model, args, valid=True):
 
 
 
-    # video = output.permute(0,2,3,1).data.cpu().numpy() 
+    # video = output.permute(0,2,3,1).data.cpu().numpy()
     # viz.video(tensor=video) #LxHxWxC
 
     return test_loss
