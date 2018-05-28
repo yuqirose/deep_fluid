@@ -23,6 +23,7 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
 
         self.params = params
+	self.device = params["device"]	
 
         self.hidden_dim = params['discrim_rnn_dim']
         self.action_dim = params['y_dim']
@@ -30,18 +31,27 @@ class Discriminator(nn.Module):
         self.gpu = params['cuda']
         self.num_layers = params['discrim_num_layers']
 
-        self.gru = nn.GRU(self.state_dim, self.hidden_dim, self.num_layers)
-        self.dense1 = nn.Linear(self.hidden_dim + self.action_dim, self.hidden_dim)
+        self.gru = nn.GRU(self.hidden_dim, self.hidden_dim, self.num_layers)
+	self.fc = nn.Linear(self.state_dim * self.state_dim, self.hidden_dim)
+        self.dense1 = nn.Linear(self.hidden_dim + self.hidden_dim, self.hidden_dim)
         self.dense2 = nn.Linear(self.hidden_dim, 1)
 
     def forward(self, x, a, h=None):  # x: seq * batch * 10, a: seq * batch * 10
+
+        x = x.view(x.size()[0], x.size()[1], -1)
+        a = a.view(a.size()[0], a.size()[1], -1)
+        x = self.fc(x)
+        a = self.fc(a)
+
         p, hidden = self.gru(x, h)   # p: seq * batch * 10
         p = torch.cat([p, a], 2)   # p: seq * batch * 20
-        prob = F.sigmoid(self.dense2(F.relu(self.dense1(p))))    # prob: seq * batch * 1
+	    
+        p = F.relu(self.dense1(p))    # prob: seq * batch * 1
+        prob = F.sigmoid(self.dense2(p))
         return prob
 
     def init_hidden(self, batch):
-        return Variable(torch.zeros(self.num_layers, batch, self.hidden_dim))
+        return torch.zeros(self.num_layers, batch, self.hidden_dim).to(self.device)
 
 class PROG_RNN(nn.Module):
 

@@ -129,6 +129,7 @@ if args.cuda: torch.cuda.manual_seed_all(args.seed)
 policy_net = Seq2Seq(args, params).double().to(device)
 discrim_net = Discriminator(params).double().to(device)
 
+
 params['total_params'] = num_trainable_params(policy_net)
 print(params)
 
@@ -225,45 +226,51 @@ train_discrim = True
 
 for batch_idx, (data, target) in enumerate(train_loader):
 
-    maybe_print("Forward Pass")
+    # maybe_print("Forward Pass")
     ts0 = time.time()
 
     data, target = data.double().to(device), target.double().to(device)
 
-    print(data.shape, target.shape)
-    print(data.type(), target.type())
+    # print(data.shape, target.shape)
+    # print(data.type(), target.type())
 
     output = policy_net(data, target)
+
+    exp_states = target[:,:-1]
+    exp_actions = target[:,1:]
+    model_states = output[:,:-1]
+    model_actions = output[:,1:]
 
     ts1 = time.time()
 
 
-    maybe_print("Updating Model")
+    # maybe_print("Updating Model")
     t0 = time.time()
+
 
     # update discriminator
     mod_p_epoch, exp_p_epoch = update_discrim(
         discrim_net, optimizer_discrim, discrim_criterion,
         exp_states, exp_actions,
         model_states, model_actions,
-        i_iter, dis_times=3.0, use_gpu=use_gpu, train=train_discrim)
+        batch_idx, dis_times=3.0, use_gpu=use_gpu, train=train_discrim, device=device)
 
     exp_p.append(exp_p_epoch)
 
     # update policy network
-    if i_iter > 3 and mod_p[-1] < 0.8:
-        update_policy(policy_net, optimizer_policy, discrim_net, discrim_criterion, model_states_var, model_actions_var, i_iter, use_gpu)
+    if batch_idx > 3 and mod_p[-1] < 0.8:
+        update_policy(policy_net, optimizer_policy, discrim_net, discrim_criterion, model_states_var, model_actions_var, batch_idx, use_gpu)
 
     t1 = time.time()
 
     # log
-    if i_iter % args.log_interval == 0:
+    if batch_idx % args.log_interval == 0:
         maybe_print('{}\tT_sample {:.4f}\tT_update {:.4f}\texp_p {:.3f}'.format(
-            i_iter, ts1-ts0, t1-t0, exp_p[-1]))
+            batch_idx, ts1-ts0, t1-t0, exp_p[-1]))
 
     # vis
 
     # save
-    if args.save_model_interval > 0 and (i_iter) % args.save_model_interval == 0:
+    if args.save_model_interval > 0 and (batch_idx) % args.save_model_interval == 0:
         torch.save(policy_net.state_dict(), save_path+'model/policy_step'+str(args.subsample)+'_training.pth')
         torch.save(discrim_net.state_dict(), save_path+'model/discrim_step'+str(args.subsample)+'_training.pth')
