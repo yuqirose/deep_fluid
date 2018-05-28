@@ -155,7 +155,7 @@ def train(train_loader, epoch, model, args, epoch_fig):
 
     return train_loss
 
-def test(test_loader, epoch, model, args, valid=True):
+def test(test_loader, model, args, valid=True):
     """uses test data to evaluate
     likelihood of the model"""
 
@@ -189,9 +189,8 @@ def test(test_loader, epoch, model, args, valid=True):
             fname = fname%(sim_idx,step_idx)
             save_fname = "/true_"+fname
             np.savez(args.save_dir+save_fname, data.data.cpu().numpy())
-            save_fname = "/pred_low_"+fname
+            save_fname = "/pred_"+fname
             np.savez(args.save_dir+save_fname, output.data.cpu().numpy())
-            save_fname = "/pred_high_"+fname
 
             if args.use_focus:
                 np.savez(args.save_dir+save_fname, output1.data.cpu().numpy())
