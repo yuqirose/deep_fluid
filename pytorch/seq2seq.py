@@ -59,8 +59,7 @@ class EncoderCRNN(nn.Module):
             nn.BatchNorm2d(conv_dim*8),
             nn.Conv2d(conv_dim*8, conv_dim*16, 4, 2, 1),
             nn.BatchNorm2d(conv_dim*16),
-            nn.Conv2d(conv_dim*16, conv_dim*32, 4, 2, 1),
-            nn.BatchNorm2d(conv_dim*32)    
+            nn.Conv2d(conv_dim*16, conv_dim*32, 4, 2, 1)
         )
 
         input_size = self.args.x_dim*self.args.y_dim*self.args.d_dim 
@@ -136,8 +135,7 @@ class DecoderCRNN(nn.Module):
             nn.BatchNorm2d(conv_dim*8),
             nn.Conv2d(conv_dim*8, conv_dim*16, 4, 2, 1),
             nn.BatchNorm2d(conv_dim*16),
-            nn.Conv2d(conv_dim*16, conv_dim*32, 4, 2, 1),
-            nn.BatchNorm2d(conv_dim*32)    
+            nn.Conv2d(conv_dim*16, conv_dim*32, 4, 2, 1)
         )
         self.gru = nn.GRU(channel_size, hidden_size, n_layers)
         self.fc2 = nn.Linear(hidden_size, input_size)
