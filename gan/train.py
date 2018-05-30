@@ -20,7 +20,7 @@ import torch.utils
 import torch.utils.data
 
 import visdom
-
+viz = visdom.Visdom(port=11112)
 
 # ours
 from model import Discriminator, num_trainable_params
@@ -50,7 +50,7 @@ parser.add_argument('--pre_start_lr', type=float, required=True, help='pretrain 
 parser.add_argument('--pre_min_lr', type=float, required=True, help='pretrain minimum learning rate')
 parser.add_argument('--batch_size', type=int, required=False, default=64)
 parser.add_argument('--save_every', type=int, required=False, default=50, help='periodically save model')
-parser.add_argument('--pretrain', type=int, required=False, default=50, help='num epochs to use supervised learning to pretrain')
+parser.add_argument('--pretrain', type=int, required=False, default=50, help='num epochs to use superviz.d learning to pretrain')
 parser.add_argument('--subsample', type=int, required=False, default=1, help='subsample sequeneces')
 parser.add_argument('--cuda', action='store_true', default=True, help='use GPU')
 parser.add_argument('--cont', action='store_true', default=False, help='continue training a model')
@@ -61,15 +61,15 @@ parser.add_argument('--discrim_layers', type=int, required=True, default=2)
 parser.add_argument('--policy_learning_rate', type=float, default=1e-6, help='policy network learning rate for GAN training')
 parser.add_argument('--discrim_learning_rate', type=float, default=1e-3, help='discriminator learning rate for GAN training')
 parser.add_argument('--max_iter_num', type=int, default=60000, help='maximal number of main iterations (default: 60000)')
-parser.add_argument('--log_interval', type=int, default=1, help='interval between training status logs (default: 1)')
-parser.add_argument('--draw_interval', type=int, default=50, help='interval between drawing and more detailed information (default: 50)')
+parser.add_argument('--log_freq', type=int, default=1, help='interval between training status logs (default: 1)')
+parser.add_argument('--plot_freq', type=int, default=50, help='interval between drawing and more detailed information (default: 50)')
 parser.add_argument('--pretrain_disc_iter', type=int, default=2000, help="pretrain discriminator iteration (default: 2000)")
 parser.add_argument('--save_model_interval', type=int, default=50, help="interval between saving model (default: 50)")
 
 parser.add_argument('--log_dir', type=str, default="/tmp/deep_fluid/log")
 parser.add_argument('--data_dir', type=str, default="/tmp/deep_fluid/data")
-parser.add_argument('--train_dir', type=str, default="/tmp/deep_fluid/data/train_data", metavar='N')
-parser.add_argument('--test_dir', type=str, default="/tmp/deep_fluid/data/test_data", metavar='N')
+parser.add_argument('--train_dir', type=str, default="/cs/ml/datasets/smoke_mini/train_data", metavar='N')
+parser.add_argument('--test_dir', type=str, default="/cs/ml/datasets/smoke_mini/test_data", metavar='N')
 
 parser.add_argument('--dataset', type=str, default="train", metavar='N')
 
@@ -129,6 +129,8 @@ if args.cuda: torch.cuda.manual_seed_all(args.seed)
 policy_net = Seq2Seq(args, params).double().to(device)
 discrim_net = Discriminator(params).double().to(device)
 
+print(policy_net)
+print(discrim_net)
 
 params['total_params'] = num_trainable_params(policy_net)
 print(params)
@@ -173,12 +175,6 @@ if os.path.exists('imgs'):
     shutil.rmtree('imgs')
 if not os.path.exists('imgs'):
     os.makedirs('imgs')
-vis = visdom.Visdom()
-win_pre_policy = None
-win_pre_path_length = None
-win_pre_out_of_bound = None
-win_pre_step_change = None
-
 
 # continue a previous experiment
 if args.cont and args.subsample < 16:
@@ -211,8 +207,34 @@ if use_gpu:
 
 # stats
 exp_p = []
-win_path_length = None
+mod_p = []
 
+# plot
+fig = viz.line(
+    X=torch.zeros((1,)).cpu(),
+    Y=torch.ones((1, 2)).cpu(),
+    opts=dict(
+        xlabel='Step',
+        ylabel='p(x)',
+        title='p(x)',
+        legend=['Train Generator p(x)', 'Train Discriminator p(x)']
+    )
+)
+
+epoch_fig = viz.line(
+    X=torch.zeros((1,)).cpu(),
+    Y=100*torch.ones((1,)).cpu(),
+    opts=dict(
+        xlabel='Iteration',
+        ylabel='Loss',
+        title='Current Epoch Training Loss',
+        legend=['Loss']
+    )
+)
+
+# epoch stats
+mod_p_epoches = []
+exp_p_epoches = []
 
 # Save pretrained model
 if args.pretrain_disc_iter > 250:
@@ -223,54 +245,82 @@ if args.pretrain_disc_iter > 250:
 # GAN training
 train_discrim = True
 
+it = 0
+for epoch in range(args.max_iter_num):
+    for batch_idx, (data, target) in enumerate(train_loader):
 
-for batch_idx, (data, target) in enumerate(train_loader):
+        # maybe_print("Forward Pass")
+        ts0 = time.time()
 
-    # maybe_print("Forward Pass")
-    ts0 = time.time()
+        data, target = data.double().to(device), target.double().to(device)
 
-    data, target = data.double().to(device), target.double().to(device)
+        # print(data.shape, target.shape)
+        # print(data.type(), target.type())
 
-    # print(data.shape, target.shape)
-    # print(data.type(), target.type())
+        output = policy_net(data, target)
 
-    output = policy_net(data, target)
+        exp_states = target[:,:-1]
+        exp_actions = target[:,1:]
+        model_states = output[:,:-1]
+        model_actions = output[:,1:]
 
-    exp_states = target[:,:-1]
-    exp_actions = target[:,1:]
-    model_states = output[:,:-1]
-    model_actions = output[:,1:]
-
-    ts1 = time.time()
-
-
-    # maybe_print("Updating Model")
-    t0 = time.time()
+        ts1 = time.time()
 
 
-    # update discriminator
-    mod_p_epoch, exp_p_epoch = update_discrim(
-        discrim_net, optimizer_discrim, discrim_criterion,
-        exp_states, exp_actions,
-        model_states, model_actions,
-        batch_idx, dis_times=3.0, use_gpu=use_gpu, train=train_discrim, device=device)
+        # maybe_print("Updating Model")
+        t0 = time.time()
 
-    exp_p.append(exp_p_epoch)
+        # update discriminator
+        mod_p_epoch, exp_p_epoch = update_discrim(
+            discrim_net, optimizer_discrim, discrim_criterion,
+            exp_states, exp_actions,
+            model_states, model_actions,
+            batch_idx, dis_times=3.0, use_gpu=use_gpu, train=train_discrim, device=device)
+        mod_p.append(mod_p_epoch)
+        exp_p.append(exp_p_epoch)
 
-    # update policy network
-    if batch_idx > 3 and mod_p[-1] < 0.8:
-        update_policy(policy_net, optimizer_policy, discrim_net, discrim_criterion, model_states_var, model_actions_var, batch_idx, use_gpu)
 
-    t1 = time.time()
+        # update policy network
+        model_states_copy = model_states.detach()
+        model_actions_copy = model_actions.detach()
+        update_policy(policy_net, optimizer_policy, discrim_net, discrim_criterion, model_states_copy, model_actions_copy, batch_idx, use_gpu, device=device)
 
-    # log
-    if batch_idx % args.log_interval == 0:
-        maybe_print('{}\tT_sample {:.4f}\tT_update {:.4f}\texp_p {:.3f}'.format(
-            batch_idx, ts1-ts0, t1-t0, exp_p[-1]))
+        t1 = time.time()
 
-    # vis
 
-    # save
-    if args.save_model_interval > 0 and (batch_idx) % args.save_model_interval == 0:
-        torch.save(policy_net.state_dict(), save_path+'model/policy_step'+str(args.subsample)+'_training.pth')
-        torch.save(discrim_net.state_dict(), save_path+'model/discrim_step'+str(args.subsample)+'_training.pth')
+        # log
+        if it % args.log_freq == 0:
+            maybe_print('ep-{}, b-{}\tT_sample {:.4f}\tT_update {:.4f}\tmod_p {:.3f}\texp_p {:.3f}'.format(
+                epoch, batch_idx, ts1-ts0, t1-t0, mod_p[-1], exp_p[-1]))
+
+
+        # save train valid loss
+        mod_p_epoches.append(mod_p_epoch)
+        exp_p_epoches.append(exp_p_epoch)
+
+
+        # plot
+        viz.line(
+            X=torch.ones((1)).cpu() * it,
+            Y=torch.Tensor([mod_p_epoch, exp_p_epoch]).unsqueeze(0).cpu(),
+            win=fig,
+            update='append'
+        )
+
+        plot_output = True
+        if plot_output and it % args.plot_freq == 0:
+            # print(target.shape, output.shape)
+            for t in range(args.output_len):
+                target_img = target.data[0][t][0]#first dimension pressure
+                output_img = output.data[0][t][0]
+
+                viz.heatmap(target_img.cpu(), opts=dict(colormap='Greys', title="true_it-{}_t-{}".format(it,t)))
+                viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys', title="pred_it-{}_t-{}".format(it,t)))
+
+
+        # save
+        if args.save_model_interval > 0 and (batch_idx) % args.save_model_interval == 0:
+            torch.save(policy_net.state_dict(), save_path+'model/policy_step'+str(args.subsample)+'_training.pth')
+            torch.save(discrim_net.state_dict(), save_path+'model/discrim_step'+str(args.subsample)+'_training.pth')
+
+        it += 1

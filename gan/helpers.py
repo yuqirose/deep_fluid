@@ -75,10 +75,11 @@ def update_discrim(discrim_net,
 
 # train policy network
 def update_policy(policy_net, optimizer_policy, discrim_net, discrim_criterion, \
-                  states_var, actions_var, i_iter, use_gpu):
+                  states_var, actions_var, i_iter, use_gpu, device="cpu"):
     optimizer_policy.zero_grad()
     g_o = discrim_net(states_var, actions_var)
-    policy_loss = discrim_criterion(g_o, ones((g_o.shape[0], g_o.shape[1], 1)))
+    _ones =  ones((g_o.shape[0], g_o.shape[1], 1)).to(device)
+    policy_loss = discrim_criterion(g_o, _ones) 
     policy_loss.backward()
     torch.nn.utils.clip_grad_norm(policy_net.parameters(), 10)
     optimizer_policy.step()
