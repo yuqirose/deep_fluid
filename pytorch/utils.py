@@ -1,6 +1,9 @@
 import torch 
 from torch.autograd import Variable
+import torchvision.utils as vutils
 import numpy as np 
+import matplotlib.pyplot as plt
+
 
 import visdom
 viz = visdom.Visdom()
@@ -63,6 +66,19 @@ def mean_unpool(x, kernel_sz):
 
 
 
+def vis_videos(video):
+    # B xC x T x H x W
+    video = video.permute(0,2,1,3,4)
+    n_batch = video.size(0)
+    n_frames = video.size(1)
+
+    for i in range(n_batch):
+        vid = video[i].squeeze(0)
+        viz.images(vid)
+    
+
+
+
 
 if __name__ == "__main__":
 # test mean_pool function
@@ -71,8 +87,11 @@ if __name__ == "__main__":
     data_dir = "../tensorflow/train_data"
     sim_idx = 1000
     step_idx = 0
-    x =  read_npz_file(data_dir, sim_idx, step_idx)
-    x2 = read_npz_file(data_dir, sim_idx, step_idx)
+    T = 4
+    
+
+    x =  read_npz_file(data_dir, sim_idx, step_idx, 'pressure')
+    x2 = read_npz_file(data_dir, sim_idx, step_idx, 'pressure')
 
     x = torch.from_numpy(np.vstack([x,x2])).type(torch.FloatTensor)
     print(' x shape', x.shape)
@@ -97,6 +116,18 @@ if __name__ == "__main__":
         jpgquality=20       
         )
     )
+
+
+    # test visualization
+    states = np.empty([0, 1, 64, 64])
+
+    for t in range(T):
+            arr_p = read_npz_file(data_dir, sim_idx, step_idx+t,'pressure')
+            states = np.append(states, np.expand_dims(arr_p,0), 0)
+
+    data = torch.from_numpy(states).type(torch.FloatTensor)
+    vis_videos(data)
+
 
 
 

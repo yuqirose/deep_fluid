@@ -12,7 +12,9 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from reader import SmokeDataset
-
+import utils
+import visdom
+viz = visdom.Visdom()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default='smoke', help='cifar10 | lsun | imagenet | folder | lfw | fake')
@@ -243,6 +245,19 @@ fake_label = 0
 argsimizerD = optim.Adam(netD.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
 argsimizerG = optim.Adam(netG.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
 
+# visualization
+fig = viz.line(
+    X=torch.zeros((1,)).cpu(),
+    Y=torch.ones((1, 2)).cpu(),
+    opts=dict(
+        xlabel='Epoch',
+        ylabel='D(x), D(G(z))',
+        title='Loss - Epoch',
+        legend=['D(X)', 'D(G(z))']
+    )
+)
+
+
 for epoch in range(args.niter):
     for i, (data, target)  in enumerate(dataloader, 0):
 
@@ -287,10 +302,12 @@ for epoch in range(args.niter):
         D_G_z2 = output.mean().item()
         argsimizerG.step()
 
-        print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
+ 
+        if i % 100 == 0:
+            print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
               % (epoch, args.niter, i, len(dataloader),
                  errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
-        if i % 100 == 0:
+            
             vutils.save_image(real_cpu[-1],
                     '%s/real_samples.png' % args.save_dir,
                     normalize=True)
@@ -298,6 +315,22 @@ for epoch in range(args.niter):
             vutils.save_image(fake[-1].detach(),
                     '%s/fake_samples_epoch_%03d.png' % (args.save_dir, epoch),
                     normalize=True)
+
+            for t in range(args.input_len):
+                utils.vis_videos(real_cpu)
+                utils.vis_videos(fake.detach())
+                # target_img = real_cpu[:,:,t,:,:]
+                # output_img = fake[:,:,t,:,:].detach()
+                # viz.heatmap(target_img.cpu(), opts=dict(colormap='Greys', title='true'+"_"+str(t)))
+                # viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys', title='pred'+"_"+str(t)))
+
+
+    viz.line(
+        X=torch.ones((1)).cpu() * epoch,
+        Y=torch.Tensor([D_x,D_G_z1]).unsqueeze(0).cpu(),
+        win=fig,
+        update='append'
+    )
 
     # do checkpointing
     torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (args.save_dir, epoch))
