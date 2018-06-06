@@ -25,7 +25,7 @@ parser.add_argument('--nz', type=int, default= 96, help='size of the latent z ve
 parser.add_argument('--ngf', type=int, default=64)
 parser.add_argument('--ndf', type=int, default=64)
 parser.add_argument('--niter', type=int, default=25, help='number of epochs to train for')
-parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
+parser.add_argument('--lr', type=float, default=1e-4, help='learning rate, default=0.0002')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
@@ -146,7 +146,7 @@ nc = 1
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
-        m.weight.data.normal_(0.0, 0.02)
+        m.weight.data.normal_(0.0, 1.0)
     elif classname.find('BatchNorm') != -1:
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
@@ -237,7 +237,7 @@ if args.netD != '':
 
 criterion = nn.BCELoss()
 
-fixed_noise = torch.randn(args.batchSize, nz, 1, 1, 1)
+fixed_noise = torch.randn(args.batchSize, nz, 1, 1, 1, device=device)
 real_label = 1
 fake_label = 0
 
@@ -251,9 +251,20 @@ fig = viz.line(
     Y=torch.ones((1, 2)).cpu(),
     opts=dict(
         xlabel='Epoch',
-        ylabel='D(x), D(G(z))',
-        title='Loss - Epoch',
-        legend=['D(X)', 'D(G(z))']
+        ylabel='Loss',
+        title='Loss - Step',
+        legend=['D loss', 'G loss']
+    )
+)
+
+fig_gn = viz.line(
+    X=torch.zeros((1,)).cpu(),
+    Y=torch.ones((1, 2)).cpu(),
+    opts=dict(
+        xlabel='Epoch',
+        ylabel='Gradient Norm',
+        title='Gradien Norm - Step',
+        legend=['D GN', 'G GN']
     )
 )
 
@@ -290,6 +301,10 @@ for epoch in range(args.niter):
         D_G_z1 = output.mean().item()
         errD = errD_real + errD_fake
         argsimizerD.step()
+        
+        # check D gradient
+        #print(netD.main[0].weight.data.norm())  # norm of the weight
+        netD_gn = netD.main[0].weight.grad.data.norm()  # norm of the gradient
 
         ############################
         # (2) Update G network: maximize log(D(G(z)))
@@ -301,13 +316,15 @@ for epoch in range(args.niter):
         errG.backward()
         D_G_z2 = output.mean().item()
         argsimizerG.step()
+        
+        #print(net.conv1.weight.data.norm())  # norm of the weight
+        netG_gn = netG.main[0].weight.grad.data.norm()  # norm of the gradient
 
- 
-        if i % 100 == 0:
-            print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
+        print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
               % (epoch, args.niter, i, len(dataloader),
                  errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
             
+        if i % 100 == 0:
             vutils.save_image(real_cpu[-1],
                     '%s/real_samples.png' % args.save_dir,
                     normalize=True)
@@ -325,12 +342,20 @@ for epoch in range(args.niter):
                 # viz.heatmap(output_img.cpu(), opts=dict(colormap='Greys', title='pred'+"_"+str(t)))
 
 
-    viz.line(
-        X=torch.ones((1)).cpu() * epoch,
-        Y=torch.Tensor([D_x,D_G_z1]).unsqueeze(0).cpu(),
-        win=fig,
-        update='append'
-    )
+        viz.line(
+            X=torch.ones((1)).cpu() * i,
+            Y=torch.Tensor([errD.item(),errG.item()]).unsqueeze(0).cpu(),
+            win=fig,
+            update='append'
+        )  
+
+        viz.line(
+            X=torch.ones((1)).cpu() * i,
+            Y=torch.Tensor([netD_gn.item(),netG_gn.item()]).unsqueeze(0).cpu(),
+            win=fig_gn,
+            update='append'
+        )  
+
 
     # do checkpointing
     torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (args.save_dir, epoch))
