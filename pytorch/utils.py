@@ -81,8 +81,8 @@ def vis_videos(video):
 
 
 if __name__ == "__main__":
-# test mean_pool function
-#load test data
+    # test mean_pool function
+    #load test data
 
     data_dir = "../tensorflow/train_data"
     sim_idx = 1000

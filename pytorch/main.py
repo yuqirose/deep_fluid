@@ -29,8 +29,8 @@ parser = argparse.ArgumentParser(description='adaptive vrnn')
 parser.add_argument('--exp', type=int, default=64, metavar='N')
 parser.add_argument('--sess', default="", metavar='N')
 
-parser.add_argument('--train-dir', type=str, default="../tensorflow/train_data", metavar='N')
-parser.add_argument('--test-dir', type=str, default="../tensorflow/test_data", metavar='N')
+parser.add_argument('--train-dir', type=str, default="../data/train_data", metavar='N')
+parser.add_argument('--test-dir', type=str, default="../data/test_data", metavar='N')
 parser.add_argument('--save-dir', type=str, default="../saves", metavar='N')
 
 parser.add_argument('--model', type=str, default="vrnn", metavar='N')
