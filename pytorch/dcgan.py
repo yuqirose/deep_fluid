@@ -241,9 +241,9 @@ fixed_noise = torch.randn(args.batchSize, nz, 1, 1, 1, device=device)
 real_label = 1
 fake_label = 0
 
-# setup argsimizer
-argsimizerD = optim.Adam(netD.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
-argsimizerG = optim.Adam(netG.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
+# setup optimizer
+optimizerD = optim.Adam(netD.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
+optimizerG = optim.Adam(netG.parameters(), lr=args.lr*10, betas=(args.beta1, 0.999))
 
 # visualization
 fig = viz.line(
@@ -300,7 +300,7 @@ for epoch in range(args.niter):
         errD_fake.backward()
         D_G_z1 = output.mean().item()
         errD = errD_real + errD_fake
-        argsimizerD.step()
+        optsimizerD.step()
         
         # check D gradient
         #print(netD.main[0].weight.data.norm())  # norm of the weight
@@ -315,7 +315,7 @@ for epoch in range(args.niter):
         errG = criterion(output, label)
         errG.backward()
         D_G_z2 = output.mean().item()
-        argsimizerG.step()
+        optimizerG.step()
         
         #print(net.conv1.weight.data.norm())  # norm of the weight
         netG_gn = netG.main[0].weight.grad.data.norm()  # norm of the gradient
