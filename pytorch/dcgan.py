@@ -25,7 +25,8 @@ parser.add_argument('--nz', type=int, default= 96, help='size of the latent z ve
 parser.add_argument('--ngf', type=int, default=64)
 parser.add_argument('--ndf', type=int, default=64)
 parser.add_argument('--niter', type=int, default=25, help='number of epochs to train for')
-parser.add_argument('--lr', type=float, default=1e-4, help='learning rate, default=0.0002')
+parser.add_argument('--g_lr', type=float, default=0.0025, help='learning rate, default=0.0002')
+parser.add_argument('--d_lr', type=float, default=0.0001, help='learning rate, default=0.0002')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
@@ -146,7 +147,7 @@ nc = 1
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
-        m.weight.data.normal_(0.0, 1.0)
+        m.weight.data.normal_(0.0, 0.02)
     elif classname.find('BatchNorm') != -1:
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
@@ -242,8 +243,8 @@ real_label = 1
 fake_label = 0
 
 # setup optimizer
-optimizerD = optim.Adam(netD.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
-optimizerG = optim.Adam(netG.parameters(), lr=args.lr*10, betas=(args.beta1, 0.999))
+optimizerD = optim.Adam(netD.parameters(), lr=args.d_lr, betas=(args.beta1, 0.999))
+optimizerG = optim.Adam(netG.parameters(), lr=args.g_lr, betas=(args.beta1, 0.999))
 
 # visualization
 fig = viz.line(
@@ -300,7 +301,7 @@ for epoch in range(args.niter):
         errD_fake.backward()
         D_G_z1 = output.mean().item()
         errD = errD_real + errD_fake
-        optsimizerD.step()
+        optimizerD.step()
         
         # check D gradient
         #print(netD.main[0].weight.data.norm())  # norm of the weight
@@ -343,14 +344,14 @@ for epoch in range(args.niter):
 
 
         viz.line(
-            X=torch.ones((1)).cpu() * i,
+            X=torch.ones((1)).cpu() *(epoch*len(dataloader)+i),
             Y=torch.Tensor([errD.item(),errG.item()]).unsqueeze(0).cpu(),
             win=fig,
             update='append'
         )  
 
         viz.line(
-            X=torch.ones((1)).cpu() * i,
+            X=torch.ones((1)).cpu() *(epoch*len(dataloader)+i),
             Y=torch.Tensor([netD_gn.item(),netG_gn.item()]).unsqueeze(0).cpu(),
             win=fig_gn,
             update='append'
