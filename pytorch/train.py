@@ -188,7 +188,7 @@ def test(test_loader, model, args, valid=True):
             fname ="s%04d_t%04d"
             fname = fname%(sim_idx,step_idx)
             save_fname = "/true_"+fname
-            np.savez(args.save_dir+save_fname, data.data.cpu().numpy())
+            np.savez(args.save_dir+save_fname, target.data.cpu().numpy())
             save_fname = "/pred_"+fname
             np.savez(args.save_dir+save_fname, output.data.cpu().numpy())
 
